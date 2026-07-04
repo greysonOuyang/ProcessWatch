@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#172a3f"/><stop offset="1" stop-color="#07101d"/></linearGradient>
+ <filter id="shadow"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-opacity=".32"/></filter>
+ <filter id="glow"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<rect x="80" y="70" width="864" height="864" rx="210" fill="url(#bg)" filter="url(#shadow)"/>
+<circle cx="512" cy="505" r="285" fill="none" stroke="#44ded2" stroke-width="34"/>
+<circle cx="512" cy="505" r="230" fill="none" stroke="#44ded2" stroke-opacity=".3" stroke-width="10"/>
+<circle cx="512" cy="505" r="175" fill="none" stroke="#44ded2" stroke-opacity=".18" stroke-width="8"/>
+<polyline points="252,520 340,520 388,404 452,652 522,344 586,580 636,468 700,520 772,520" fill="none" stroke="#34eede" stroke-opacity=".5" stroke-width="54" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+<polyline points="252,520 340,520 388,404 452,652 522,344 586,580 636,468 700,520 772,520" fill="none" stroke="#6ff6e8" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="762.5" cy="762.5" r="72.5" fill="#ffae3a" stroke="#ffdb97" stroke-width="10"/>
+<rect x="755" y="728" width="15" height="54" rx="7" fill="#281f17"/><circle cx="762.5" cy="804.5" r="7.5" fill="#281f17"/>
+</svg>

@@ -1,19 +1,38 @@
-.PHONY: build debug run dmg install clean
+.PHONY: doctor check review test build debug universal run clean install install-system dmg release
 
+doctor:
+	./doctor.sh
+check:
+	./scripts/source_check.sh
+
+review:
+	./scripts/review_product.sh
+
+test:
+	./scripts/test_logic.sh
 build:
-	./scripts/build_app.sh --release
+	./build.sh --release
 
 debug:
-	./scripts/build_app.sh --debug
+	./build.sh --debug
+
+universal:
+	./build.sh --release --universal
 
 run:
-	./scripts/build_app.sh --debug --run
-
-dmg:
-	./scripts/package_dmg.sh --release
-
-install:
-	./scripts/install_app.sh --release
+	./build.sh --clean --run
 
 clean:
-	./scripts/clean.sh
+	./clean.sh
+
+install:
+	./scripts/install_app.sh
+
+install-system:
+	./scripts/install_app.sh --system
+
+dmg:
+	./scripts/package_dmg.sh --universal
+
+release:
+	./scripts/release.sh

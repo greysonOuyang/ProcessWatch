@@ -1,183 +1,122 @@
-# ProcessWatch
+<p align="center">
+  <img src="docs/assets/logo-256.png" width="128" height="128" alt="ProcessWatch icon">
+</p>
 
-> 1.1.4 目录修正版：工程根目录与源码目录不再同名，内部源码统一放在 `Sources/`。
+<h1 align="center">ProcessWatch</h1>
 
-一个轻量级 macOS 菜单栏异常进程监控工具。重点不是复制“活动监视器”，而是回答：哪个进程组异常、实例为何不断增加、是否存在孤儿进程，以及它属于哪个开发工具链。
+<p align="center">
+  A local-first macOS menu bar utility for detecting persistent process anomalies.
+</p>
 
-## 最简单的构建方式
+<p align="center">
+  <img alt="Platform" src="https://img.shields.io/badge/macOS-13%2B-111827">
+  <img alt="Swift" src="https://img.shields.io/badge/Swift-5.9%2B-F05138">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-44DED2">
+  <img alt="Status" src="https://img.shields.io/badge/status-beta-FFAE3A">
+</p>
 
-解压后进入包含 `ProcessWatch.xcodeproj` 的目录，直接运行：
+[简体中文](README.zh-CN.md)
+
+ProcessWatch watches CPU usage, memory growth, disk writes, process storms, orphan processes, and repo-harness/Codex process ancestry. It aggregates identical executables before showing individual PIDs, so dozens of `bun` instances become one diagnosable group instead of a flat list.
+
+<p align="center">
+  <img src="docs/assets/dashboard-concept-v1.4.png" width="900" alt="ProcessWatch dashboard design concept">
+</p>
+
+> The image above is a design concept. The implementation follows the same information architecture using native SwiftUI/AppKit components.
+
+> **Project status:** public beta. The app is useful for local diagnostics, but its native process sampling and release pipeline should be validated on multiple macOS and hardware versions before declaring a stable 1.0 release.
+
+## Highlights
+
+- Unified native dark interface with Overview, Processes, Alerts, and Settings; the menu bar popover and main window share one visual system
+- Menu bar CPU status and anomaly indicator
+- Real trend cards for system CPU, memory pressure, aggregate process disk writes, process/orphan count, and thermal state
+- Grouping by executable path with aggregate CPU, memory, I/O, orphan count, and longest runtime
+- PID, PPID, full command line, working directory, launch time, parent process, and ancestry affiliation
+- Persistent high CPU, memory growth, disk-write, process-storm, and repo-harness orphan-leak alerts
+- Incident center with separate Active and History modes, plus graceful terminate, force quit, orphan/high-CPU targeting, snooze, whitelist, Finder, command copy, and Activity Monitor
+- User-selected cleanup scripts with explicit confirmation; no misleading generic “clean memory” operation
+- Persistent anomaly and user-action history with search, filters, JSON export, notifications, and configurable thresholds
+- No analytics, telemetry, account, cloud service, or network upload
+- Native SwiftUI + AppKit + libproc/Mach implementation with no runtime third-party dependencies
+
+## Quick start from source
+
+Requirements:
+
+- macOS 13 or later
+- Xcode 15 or later, or compatible Xcode Command Line Tools
 
 ```bash
+./doctor.sh
 ./build.sh --clean --run
 ```
 
-也可以运行 `./run.sh`。正确的项目根目录会同时包含 `build.sh`、`ProcessWatch.xcodeproj`、`Sources/` 和 `scripts/`。源码目录只有一层，名称为 `Sources`。
-
-
-## 当前功能
-
-### 进程诊断
-
-- 按可执行文件路径聚合同名进程，例如 `bun × 58`
-- 聚合展示 CPU、内存、磁盘读写、孤儿进程数量和最长运行时间
-- 展开进程组后展示每个实例的：
-  - PID / PPID
-  - 完整命令行
-  - 工作目录
-  - 启动时间与运行时长
-  - 父进程名称
-  - 是否为孤儿进程
-  - 是否属于 repo-harness / Codex 调用链
-- 支持按名称、PID、PPID、命令、目录、父进程和归属搜索
-- 支持按 CPU、内存、写盘、实例数和孤儿进程数排序
-
-### 异常检测
-
-- 持续高 CPU
-- 时间窗口内持续内存增长
-- 持续高磁盘写入
-- 进程风暴：同一可执行文件实例数超过阈值并持续一段时间
-- repo-harness 疑似进程泄漏：进程风暴中存在 PPID=1、属于 repo-harness 调用链且长时间运行的孤儿进程
-- 同类异常恢复前不重复通知，并带 30 分钟冷却时间
-
-### 系统状态
-
-- 系统 CPU 使用率
-- 内存压力
-- Swap 使用量
-- 压缩内存
-- 可回收缓存估算
-- 相邻采样间的系统内存增长速度
-- macOS 热状态及与等级一致的性能限制文案
-
-### 其他
-
-- macOS 本地通知
-- 异常历史记录
-- 进程忽略列表
-- 登录时启动
-- 在 Finder 中定位可执行文件
-- 向指定 PID 发送 `SIGTERM`
-
-## 系统要求
-
-- macOS 13 Ventura 或更高版本
-- Xcode 15 或更高版本
-
-## 命令行构建
-
-```bash
-# Release 构建，产物位于 dist/ProcessWatch.app
-./scripts/build_app.sh
-
-# 清理后重新构建并直接运行
-./scripts/build_app.sh --clean --run
-
-# Debug 构建
-./scripts/build_app.sh --debug
-```
-
-也可以使用 Makefile：
-
-```bash
-make build      # Release
-make run        # Debug 并启动
-make dmg        # 生成 dist/ProcessWatch.dmg
-make install    # 构建并安装到 /Applications
-make clean
-```
-
-脚本默认会对 `dist/ProcessWatch.app` 进行本机 ad-hoc 签名，适合本地运行。需要使用正式开发者证书时，可以指定：
-
-```bash
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-  ./scripts/build_app.sh --release
-```
-
-正式对外分发还需要使用自己的 Developer ID 执行公证。当前脚本不会上传证书或自动公证。
-
-## Xcode 运行
-
-1. 解压源码。
-2. 双击 `ProcessWatch.xcodeproj`。
-3. 在 Xcode 中选择 `ProcessWatch` scheme 和 `My Mac`。
-4. 点击 Run。
-5. 第一次启动时允许通知权限。
-
-应用是 `LSUIElement` 菜单栏程序，默认不会出现在 Dock。点击菜单栏图标可打开浮窗和主界面。
-
-## 默认异常规则
-
-- 进程风暴：同一可执行文件实例数 `> 10`，持续 120 秒
-- repo-harness 孤儿判断：PPID 为 1、属于 repo-harness 调用链、运行超过 600 秒，并且所在进程组已构成进程风暴
-- CPU：单进程超过 80%，持续 120 秒
-- 内存：10 分钟增长超过 1024 MB
-- 磁盘：写入超过 30 MB/s，持续 120 秒
-
-所有规则都可以在设置页修改。进程 CPU 允许超过 100%，因为多线程进程可以同时占用多个逻辑核心。
-
-## 实现说明
-
-采样层不依赖 `top` 或 `ps`，而是通过 C Bridge 调用 macOS 原生接口：
-
-- `proc_listpids`
-- `proc_pid_rusage`
-- `proc_pidinfo`
-- `proc_name`
-- `proc_pidpath`
-- `KERN_PROCARGS2`
-- `host_statistics`
-- `host_statistics64`
-- `vm.swapusage`
-
-进程组优先使用完整可执行文件路径作为聚合键；读取不到路径时退化为进程名称。
-
-“可回收缓存”由 inactive、speculative 和 purgeable 页合计估算，可能与活动监视器的专有口径不同。内存压力优先读取系统 pressure level；系统不提供该值时，会根据可用页和 Swap 使用情况进行估算，并在界面中标注“估算”。
-
-完整命令行只保存在当前内存并显示在本机界面，不写入异常历史；但命令参数本身可能包含敏感信息，截图或共享诊断信息前应检查内容。
-
-## 当前限制
-
-- 未读取精确 CPU/GPU 温度或风扇转速
-- 未定位进程具体写入了哪个文件
-- 系统或其他用户的部分进程可能因权限限制无法读取完整命令和工作目录
-- PPID=1 代表进程已由 `launchd` 接管，但不必然等于泄漏，因此 repo-harness 报警同时要求实例风暴和运行时长条件
-- `SIGTERM` 不能结束无权限操作的进程
-- 当前工程未启用 App Sandbox；若要上架 Mac App Store，需要重新评估跨进程监控能力和权限模型
-
-## 退出应用
-
-关闭主窗口只会关闭窗口，菜单栏监控仍会继续。要完全退出：
-
-- 点击菜单栏 ProcessWatch 面板中的“退出 ProcessWatch”；
-- 在“设置 → 应用”中点击“退出 ProcessWatch”；
-- 或按 `Command-Q`。
-
-## 构建失败诊断
-
-构建脚本会把完整日志保存到：
+The app bundle is created at:
 
 ```text
-build/xcodebuild.log
+dist/ProcessWatch.app
 ```
 
-重新构建：
+Other commands:
 
 ```bash
-./scripts/build_app.sh --clean --run
+make check             # source, metadata, and script checks
+make review            # UI/history/safety product checks
+make build             # native Release build
+make universal         # arm64 + x86_64 app
+make dmg               # versioned DMG
+make install           # install to ~/Applications
+make install-system    # install to /Applications (uses sudo)
 ```
-## 1.1.3 编译兼容修复
 
-1.1.3 不再从 Swift 直接访问 `PWProcessSample` 等 C 结构体中的下划线字段或定长字符数组。不同 Xcode/Clang 版本对这些字段的导入名称可能不同，之前可能报：
+Open `Package.swift` in Xcode for source navigation and debugging.
 
-```text
-value of type 'PWProcessSample' has no member 'command_line'
-```
+## Release distribution
 
-现在统一通过稳定的 C accessor API 读取，避免后续继续在 `working_directory`、CPU ticks 或内存字段上出现同类错误。升级后建议先执行：
+Local builds use an ad-hoc signature and are intended only for development. A public binary release should be:
+
+1. built as a universal binary;
+2. signed with a Developer ID Application certificate and Hardened Runtime;
+3. notarized by Apple;
+4. stapled and verified;
+5. published with SHA-256 checksums.
+
+The included release script performs that workflow after signing credentials are configured:
 
 ```bash
-./build.sh --clean --run
+export DEVELOPER_ID_APPLICATION='Developer ID Application: Your Name (TEAMID)'
+export NOTARY_PROFILE='ProcessWatchNotary'
+./scripts/release.sh
 ```
 
+See [docs/RELEASING.md](docs/RELEASING.md).
+
+## Privacy and security
+
+ProcessWatch reads local process and system resource metadata. It does not transmit monitoring data. Anomaly history, user-action history, and preferences remain in the current macOS user account. Per-second metric charts stay in a bounded in-memory window and are not retained long term. Some process fields cannot be read without additional privileges and are shown as unavailable rather than requesting root access.
+
+Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md) before distributing the app.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [v1.5 interaction and feature plan](docs/IMPLEMENTATION_PLAN_V1.5.md)
+- [UI and process actions](docs/UI_AND_ACTIONS.md)
+- [Building](docs/BUILDING.md)
+- [Releasing](docs/RELEASING.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Roadmap](docs/ROADMAP.md)
+- [GitHub repository setup](docs/GITHUB_SETUP.md)
+- [Open-source release audit](docs/OPEN_SOURCE_RELEASE_AUDIT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
+
+## Branding
+
+The source logo, PNG assets, and `.icns` app icon are under `Assets/` and `docs/assets/`. They are distributed under the same MIT license as the project. The icon represents process activity, continuous observation, and an anomaly alert.
+
+## License and disclaimer
+
+ProcessWatch is available under the [MIT License](LICENSE). It is not affiliated with Apple, OpenAI, Codex, Bun, or repo-harness. Process classification is heuristic and should be confirmed before terminating a process.
