@@ -1,45 +1,46 @@
 # Open-Source and Release Audit
 
-Audit date: 2026-07-03
+Audit date: 2026-07-10
 
-## Ready in the repository
+## Source-release status
 
-- MIT license and neutral contributor copyright.
-- Bilingual README and beta-status disclosure.
-- App icon in SVG, PNG, and ICNS formats.
-- GitHub social preview image.
-- Contribution, conduct, support, privacy, security, and disclaimer documents.
-- Bug and feature issue forms plus pull-request template.
-- macOS CI build and native logic checks.
-- Version injection from a single `VERSION` file.
-- Native and universal build modes.
-- Developer ID signing with Hardened Runtime.
-- Apple notarization and stapling script.
-- Versioned DMG and SHA-256 checksums.
-- GitHub Actions workflow for a protected, signed release.
-- Privacy manifest and local-data documentation.
-- Removal of quarantine-bypass behavior from the installer.
-- Process termination protection for PID 1 and ProcessWatch itself.
+ProcessWatch is ready for a public source release as a macOS public beta.
 
-## External actions still required
+Repository readiness confirmed:
 
-These cannot be completed inside the source archive:
+- MIT license with neutral contributor ownership.
+- English and Simplified Chinese README files with beta-status disclosure.
+- Original app branding in editable SVG, 1024 PNG, ICNS, documentation-logo, and social-preview formats.
+- Contribution guide, code of conduct, support guide, privacy policy, security policy, issue forms, and pull-request template.
+- Privacy manifest declaring no tracking or collected data.
+- No third-party Swift package dependencies.
+- Native logic checks, source validation, product review checks, and macOS CI.
+- Single-source semantic versioning through `VERSION`.
+- Native and universal build paths.
+- Developer ID, Hardened Runtime, notarization, stapling, Gatekeeper verification, DMG packaging, and SHA-256 tooling.
+- Runtime-only `.ai/` and `.repo-harness/` directories excluded from Git.
+- Safety guards for PID 1 and the ProcessWatch process itself.
 
-1. Create the GitHub repository and select the final public owner/URL.
-2. Confirm the bundle identifier is appropriate for that owner.
-3. Enable GitHub private vulnerability reporting and branch protection.
-4. Join the Apple Developer Program if not already enrolled.
-5. Create a Developer ID Application certificate.
-6. Configure notarization credentials and protected CI secrets.
-7. Build on a real Mac using the selected Xcode version.
-8. Test on Apple silicon and Intel hardware.
-9. Measure the app's own idle CPU, wakeups, memory, and disk activity.
-10. Run first-launch and Gatekeeper tests on a clean Mac user account.
+## Public binary gate
+
+A source tag and GitHub source release may be published immediately. A downloadable DMG must not be presented as production-ready until all of the following are complete:
+
+1. Build a universal arm64 + x86_64 application.
+2. Sign the application and DMG with a valid Developer ID Application identity.
+3. Enable Hardened Runtime and secure timestamping.
+4. Notarize the application and DMG with Apple.
+5. Staple and validate notarization tickets.
+6. Pass Gatekeeper assessment on a clean macOS account.
+7. Validate behavior on Apple silicon and Intel hardware.
+8. Measure idle CPU, wakeups, memory, and disk activity over an extended run.
+9. Publish SHA-256 checksums with the binary artifacts.
+
+Ad-hoc signed local builds are development artifacts and must not be attached to a public release.
 
 ## Release recommendation
 
-Publish the repository immediately if desired, but publish binaries as `v1.3.0-beta.1` or another pre-release tag until the external validation above is complete. Do not label the binary as stable 1.0 yet.
+Publish `v1.5.2` as a GitHub pre-release with source archives only. Keep the project status as public beta. Add a notarized universal DMG to a later pre-release after the public binary gate is satisfied.
 
-## Logo assessment
+## Branding assessment
 
-A logo is appropriate because the app is distributed as a menu bar utility and needs a recognizable Finder, About panel, DMG, GitHub, and release identity. The included logo is original project artwork and is licensed with the repository.
+The refreshed icon uses a watchful eye as the primary silhouette, a process waveform as the diagnostic signal, and an amber badge for anomaly attention. The shape remains recognizable at Finder and menu-bar-adjacent sizes and is original project artwork distributed under the MIT License.

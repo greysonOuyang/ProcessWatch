@@ -12,7 +12,7 @@
   <img alt="Platform" src="https://img.shields.io/badge/macOS-13%2B-111827">
   <img alt="Swift" src="https://img.shields.io/badge/Swift-5.9%2B-F05138">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-44DED2">
-  <img alt="Status" src="https://img.shields.io/badge/status-beta-FFAE3A">
+  <img alt="Status" src="https://img.shields.io/badge/status-public%20beta-FFAE3A">
 </p>
 
 [简体中文](README.zh-CN.md)
@@ -25,7 +25,7 @@ ProcessWatch watches CPU usage, memory growth, disk writes, process storms, orph
 
 > The image above is a design concept. The implementation follows the same information architecture using native SwiftUI/AppKit components.
 
-> **Project status:** public beta. The app is useful for local diagnostics, but its native process sampling and release pipeline should be validated on multiple macOS and hardware versions before declaring a stable 1.0 release.
+> **Project status:** public beta. Source releases are available now. Public binary downloads remain gated on Developer ID signing, Apple notarization, and validation on both Apple silicon and Intel Macs before a stable 1.0 release.
 
 ## Highlights
 

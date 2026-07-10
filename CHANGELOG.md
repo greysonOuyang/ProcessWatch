@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.2 - 2026-07-10
+
+- Replaced the app icon with a clearer watchful-eye and process-waveform identity.
+- Synchronized PNG, ICNS, documentation logo, and social-preview brand assets.
+- Added repo-harness runtime directories to `.gitignore` so public clones remain clean.
+- Refreshed the open-source release audit and prepared the first source-only public beta release.
+- Kept unsigned or ad-hoc-signed binaries out of the public release until Developer ID signing, notarization, and cross-architecture validation are complete.
+
 ## 1.5.1
 
 - Fixed dashboard overlap and missing spacing between the process table and right-side operation panel.
