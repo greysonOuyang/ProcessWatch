@@ -60,19 +60,12 @@ struct OverviewView: View {
         )
       }
 
-      HSplitView {
+      DashboardSplit {
         processSection
-          .frame(minWidth: 650, maxWidth: .infinity, maxHeight: .infinity)
-
+      } trailing: {
         AnomalyActionPanel(group: selectedGroup)
-          .frame(
-            minWidth: 350,
-            idealWidth: ProcessWatchLayout.detailPanelWidth,
-            maxWidth: 470,
-            maxHeight: .infinity
-          )
       }
-      .frame(maxHeight: .infinity)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     .padding(.horizontal, ProcessWatchLayout.pageHorizontal)
     .padding(.vertical, ProcessWatchLayout.pageVertical)
@@ -81,16 +74,14 @@ struct OverviewView: View {
   }
 
   private var header: some View {
-    HStack(spacing: 14) {
+    PageHeaderBar {
       SectionHeading(
         title: "系统概览",
         subtitle: model.isPaused
           ? "监控已暂停，当前数据不会继续刷新"
           : "聚焦持续异常，不因瞬时峰值打扰你"
       )
-
-      Spacer()
-
+    } actions: {
       HStack(spacing: 8) {
         StatusPill(
           text: model.activeAnomalyCount > 0 ? "\(model.activeAnomalyCount) 个活动异常" : "当前稳定",
@@ -101,6 +92,7 @@ struct OverviewView: View {
           Text("更新于 \(lastSampleAt.formatted(date: .omitted, time: .standard))")
             .font(.caption)
             .foregroundStyle(ProcessWatchTheme.textSecondary)
+            .lineLimit(1)
         }
 
         Button {

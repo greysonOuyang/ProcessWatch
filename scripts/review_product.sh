@@ -26,7 +26,7 @@ if grep -q 'case actions' Sources/ProcessWatch/Models/AppSection.swift; then
   exit 1
 fi
 
-grep -q 'pageHorizontal: CGFloat = 20' Sources/ProcessWatch/Views/DesignSystem.swift
+grep -q 'pageHorizontal: CGFloat = 24' Sources/ProcessWatch/Views/DesignSystem.swift
 grep -q 'popoverBackground' Sources/ProcessWatch/Views/MenuBarView.swift
 grep -q 'windowBackground' Sources/ProcessWatch/Views/MainView.swift
 grep -q 'action-history.json' Sources/ProcessWatch/Services/ActionHistoryStore.swift
@@ -42,3 +42,10 @@ if command -v swift-format >/dev/null 2>&1; then
 fi
 
 echo "Product review checks passed."
+
+grep -q 'struct DashboardSplit' Sources/ProcessWatch/Views/DesignSystem.swift
+if grep -R 'HSplitView' Sources/ProcessWatch/Views >/dev/null; then
+  echo 'HSplitView must not be used for dashboard panes; it caused panel overlap and missing spacing' >&2
+  exit 1
+fi
+grep -q 'ProcessWatch.MainWindow.v1.5.1' Sources/ProcessWatch/Views/WindowManager.swift

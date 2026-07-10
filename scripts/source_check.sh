@@ -10,7 +10,7 @@ required=(
   build.sh run.sh doctor.sh clean.sh
   Support/Info.plist Support/PrivacyInfo.xcprivacy
   Assets/AppIcon.icns Assets/AppIcon.png Assets/AppIcon.svg
-  docs/UI_AND_ACTIONS.md docs/IMPLEMENTATION_PLAN_V1.5.md docs/assets/dashboard-concept-v1.4.png
+  docs/UI_AND_ACTIONS.md docs/IMPLEMENTATION_PLAN_V1.5.md docs/IMPLEMENTATION_PLAN_V1.5.1.md docs/assets/dashboard-concept-v1.4.png
   Tests/LogicTests.swift scripts/test_logic.sh scripts/release_notes.sh scripts/review_product.sh
   Sources/ProcessWatch/ProcessWatchApp.swift
   Sources/ProcessWatch/Models/MetricHistory.swift

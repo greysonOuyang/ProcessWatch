@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.1
+
+- Fixed dashboard overlap and missing spacing between the process table and right-side operation panel.
+- Replaced `HSplitView` dashboard panes with a custom `DashboardSplit` layout.
+- Increased page margins and default window size for better macOS visual balance.
+- Added product review checks to prevent the overlapping split layout from returning.
+
+
 ## 1.5.0 - Unified interface and incident history
 
 - Unified the menu bar popover and main window under one dark charcoal/amber design system.

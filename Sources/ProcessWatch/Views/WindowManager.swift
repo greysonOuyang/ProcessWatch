@@ -22,7 +22,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
       .environmentObject(model)
     let hostingController = NSHostingController(rootView: content)
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 1420, height: 860),
+      contentRect: NSRect(x: 0, y: 0, width: 1480, height: 900),
       styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
       backing: .buffered,
       defer: false
@@ -34,11 +34,11 @@ final class WindowManager: NSObject, NSWindowDelegate {
     window.isMovableByWindowBackground = true
     window.backgroundColor = NSColor(calibratedRed: 0.03, green: 0.03, blue: 0.034, alpha: 1)
     window.appearance = NSAppearance(named: .darkAqua)
-    window.minSize = NSSize(width: 1180, height: 720)
+    window.minSize = NSSize(width: 1260, height: 760)
     window.contentViewController = hostingController
     window.collectionBehavior = [.fullScreenPrimary]
     window.center()
-    window.setFrameAutosaveName("ProcessWatch.MainWindow.v1.5")
+    window.setFrameAutosaveName("ProcessWatch.MainWindow.v1.5.1")
     window.delegate = self
 
     let controller = NSWindowController(window: window)

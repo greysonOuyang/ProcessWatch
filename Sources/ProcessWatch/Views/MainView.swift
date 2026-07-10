@@ -19,7 +19,7 @@ struct MainView: View {
       }
     }
     .preferredColorScheme(.dark)
-    .frame(minWidth: 1180, minHeight: 720)
+    .frame(minWidth: 1260, minHeight: 760)
   }
 
   private var topBar: some View {

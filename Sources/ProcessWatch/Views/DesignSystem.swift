@@ -1,13 +1,15 @@
 import SwiftUI
 
 enum ProcessWatchLayout {
-  static let pageHorizontal: CGFloat = 20
-  static let pageVertical: CGFloat = 18
-  static let sectionGap: CGFloat = 14
+  static let pageHorizontal: CGFloat = 24
+  static let pageVertical: CGFloat = 22
+  static let sectionGap: CGFloat = 16
   static let cardGap: CGFloat = 12
+  static let panelGap: CGFloat = 16
   static let cardRadius: CGFloat = 14
   static let compactRadius: CGFloat = 10
-  static let detailPanelWidth: CGFloat = 390
+  static let detailPanelWidth: CGFloat = 420
+  static let compactDetailPanelWidth: CGFloat = 360
 }
 
 enum ProcessWatchTheme {
@@ -42,6 +44,55 @@ enum ProcessWatchTheme {
       startPoint: .top,
       endPoint: .bottom
     )
+  }
+}
+
+
+struct DashboardSplit<Leading: View, Trailing: View>: View {
+  private let leading: Leading
+  private let trailing: Trailing
+  private let trailingWidth: CGFloat
+
+  init(
+    trailingWidth: CGFloat = ProcessWatchLayout.detailPanelWidth,
+    @ViewBuilder leading: () -> Leading,
+    @ViewBuilder trailing: () -> Trailing
+  ) {
+    self.trailingWidth = trailingWidth
+    self.leading = leading()
+    self.trailing = trailing()
+  }
+
+  var body: some View {
+    GeometryReader { proxy in
+      let shouldStack = proxy.size.width < 980
+
+      if shouldStack {
+        ScrollView {
+          VStack(spacing: ProcessWatchLayout.panelGap) {
+            leading
+              .frame(maxWidth: .infinity)
+              .frame(minHeight: 360)
+            trailing
+              .frame(maxWidth: .infinity)
+              .frame(minHeight: 360)
+          }
+          .frame(maxWidth: .infinity, alignment: .top)
+        }
+      } else {
+        HStack(alignment: .top, spacing: ProcessWatchLayout.panelGap) {
+          leading
+            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+
+          trailing
+            .frame(width: min(trailingWidth, max(ProcessWatchLayout.compactDetailPanelWidth, proxy.size.width * 0.34)))
+            .frame(maxHeight: .infinity)
+            .clipped()
+        }
+        .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
+      }
+    }
   }
 }
 
@@ -109,6 +160,36 @@ struct SectionHeading: View {
       Text(subtitle)
         .font(.caption)
         .foregroundStyle(ProcessWatchTheme.textSecondary)
+    }
+  }
+}
+
+struct PageHeaderBar<Title: View, Actions: View>: View {
+  private let title: Title
+  private let actions: Actions
+
+  init(
+    @ViewBuilder title: () -> Title,
+    @ViewBuilder actions: () -> Actions
+  ) {
+    self.title = title()
+    self.actions = actions()
+  }
+
+  var body: some View {
+    ViewThatFits(in: .horizontal) {
+      HStack(alignment: .center, spacing: 14) {
+        title
+        Spacer(minLength: 16)
+        actions
+      }
+
+      VStack(alignment: .leading, spacing: 12) {
+        title
+          .frame(maxWidth: .infinity, alignment: .leading)
+        actions
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
     }
   }
 }

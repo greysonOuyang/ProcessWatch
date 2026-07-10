@@ -111,19 +111,21 @@ final class AnomalyDetector {
       if isStorm {
         tracker.stormSince = tracker.stormSince ?? now
         if let since = tracker.stormSince,
-          now.timeIntervalSince(since) >= settings.processStormDuration,
-          shouldAlert(.processStorm, tracker: tracker, now: now)
+          now.timeIntervalSince(since) >= settings.processStormDuration
         {
-          generated.append(
-            makeGroupEvent(
-              group: group,
-              kind: .processStorm,
-              title: "检测到进程风暴",
-              detail:
-                "同一可执行文件存在 \(group.instanceCount) 个实例，CPU 合计 \(formatPercent(group.cpuPercent))，内存合计 \(formatBytes(group.memoryBytes))，其中孤儿进程 \(group.orphanCount) 个，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
-            ))
+          let shouldNotify = shouldAlert(.processStorm, tracker: tracker, now: now)
           tracker.activeKinds.insert(.processStorm)
-          tracker.lastAlertAt[.processStorm] = now
+          if shouldNotify {
+            generated.append(
+              makeGroupEvent(
+                group: group,
+                kind: .processStorm,
+                title: "检测到进程风暴",
+                detail:
+                  "同一可执行文件存在 \(group.instanceCount) 个实例，CPU 合计 \(formatPercent(group.cpuPercent))，内存合计 \(formatBytes(group.memoryBytes))，其中孤儿进程 \(group.orphanCount) 个，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
+              ))
+            tracker.lastAlertAt[.processStorm] = now
+          }
         }
       } else {
         tracker.stormSince = nil
@@ -137,7 +139,9 @@ final class AnomalyDetector {
       let isRepoHarnessLeak = isStorm && !repoHarnessOrphans.isEmpty
 
       if isRepoHarnessLeak {
-        if shouldAlert(.repoHarnessLeak, tracker: tracker, now: now) {
+        let shouldNotify = shouldAlert(.repoHarnessLeak, tracker: tracker, now: now)
+        tracker.activeKinds.insert(.repoHarnessLeak)
+        if shouldNotify {
           generated.append(
             makeGroupEvent(
               group: group,
@@ -146,7 +150,6 @@ final class AnomalyDetector {
               detail:
                 "检测到 \(repoHarnessOrphans.count) 个运行超过 \(formatDuration(settings.repoHarnessOrphanDuration)) 的孤儿 \(group.name) 进程；同一可执行文件当前共有 \(group.instanceCount) 个实例。"
             ))
-          tracker.activeKinds.insert(.repoHarnessLeak)
           tracker.lastAlertAt[.repoHarnessLeak] = now
         }
       } else {
@@ -167,19 +170,21 @@ final class AnomalyDetector {
     if process.cpuPercent >= settings.cpuThreshold {
       tracker.cpuHighSince = tracker.cpuHighSince ?? now
       if let since = tracker.cpuHighSince,
-        now.timeIntervalSince(since) >= settings.cpuDuration,
-        shouldAlert(.cpu, tracker: tracker, now: now)
+        now.timeIntervalSince(since) >= settings.cpuDuration
       {
-        generated.append(
-          makeEvent(
-            process: process,
-            kind: .cpu,
-            title: "发现持续高 CPU 进程",
-            detail:
-              "CPU \(formatPercent(process.cpuPercent))，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
-          ))
+        let shouldNotify = shouldAlert(.cpu, tracker: tracker, now: now)
         tracker.activeKinds.insert(.cpu)
-        tracker.lastAlertAt[.cpu] = now
+        if shouldNotify {
+          generated.append(
+            makeEvent(
+              process: process,
+              kind: .cpu,
+              title: "发现持续高 CPU 进程",
+              detail:
+                "CPU \(formatPercent(process.cpuPercent))，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
+            ))
+          tracker.lastAlertAt[.cpu] = now
+        }
       }
     } else {
       tracker.cpuHighSince = nil
@@ -198,19 +203,21 @@ final class AnomalyDetector {
     if process.diskWriteBytesPerSecond >= threshold {
       tracker.diskHighSince = tracker.diskHighSince ?? now
       if let since = tracker.diskHighSince,
-        now.timeIntervalSince(since) >= settings.diskDuration,
-        shouldAlert(.diskWrite, tracker: tracker, now: now)
+        now.timeIntervalSince(since) >= settings.diskDuration
       {
-        generated.append(
-          makeEvent(
-            process: process,
-            kind: .diskWrite,
-            title: "发现持续写盘进程",
-            detail:
-              "当前写入 \(formatRate(process.diskWriteBytesPerSecond))，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
-          ))
+        let shouldNotify = shouldAlert(.diskWrite, tracker: tracker, now: now)
         tracker.activeKinds.insert(.diskWrite)
-        tracker.lastAlertAt[.diskWrite] = now
+        if shouldNotify {
+          generated.append(
+            makeEvent(
+              process: process,
+              kind: .diskWrite,
+              title: "发现持续写盘进程",
+              detail:
+                "当前写入 \(formatRate(process.diskWriteBytesPerSecond))，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
+            ))
+          tracker.lastAlertAt[.diskWrite] = now
+        }
       }
     } else {
       tracker.diskHighSince = nil
@@ -240,7 +247,9 @@ final class AnomalyDetector {
     let threshold = UInt64(max(0, settings.memoryGrowthMB) * 1_048_576)
 
     if growth >= threshold {
-      if shouldAlert(.memoryGrowth, tracker: tracker, now: now) {
+      let shouldNotify = shouldAlert(.memoryGrowth, tracker: tracker, now: now)
+      tracker.activeKinds.insert(.memoryGrowth)
+      if shouldNotify {
         generated.append(
           makeEvent(
             process: process,
@@ -249,7 +258,6 @@ final class AnomalyDetector {
             detail:
               "约 \(formatDuration(now.timeIntervalSince(baseline.date))) 内增长 \(formatBytes(growth))，当前占用 \(formatBytes(process.memoryBytes))。"
           ))
-        tracker.activeKinds.insert(.memoryGrowth)
         tracker.lastAlertAt[.memoryGrowth] = now
       }
     } else if growth < threshold / 2 {

@@ -11,19 +11,33 @@ struct ProcessGroupTableView: View {
   @State private var expandedGroups: Set<String> = []
   @State private var searchText = ""
 
+  private var trimmedSearchText: String {
+    searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
   private var visibleGroups: [ProcessGroupSnapshot] {
+    let query = trimmedSearchText
     let filtered: [ProcessGroupSnapshot]
-    if searchText.isEmpty {
+    if query.isEmpty {
       filtered = groups
     } else {
       filtered = groups.filter { group in
-        group.name.localizedCaseInsensitiveContains(searchText)
-          || group.path.localizedCaseInsensitiveContains(searchText)
-          || group.processes.contains { $0.matches(searchText: searchText) }
+        group.name.localizedCaseInsensitiveContains(query)
+          || group.path.localizedCaseInsensitiveContains(query)
+          || group.processes.contains { $0.matches(searchText: query) }
       }
     }
     if let maxRows { return Array(filtered.prefix(maxRows)) }
     return filtered
+  }
+
+  private var hasSearchFilter: Bool {
+    !trimmedSearchText.isEmpty
+  }
+
+  private var allVisibleExpanded: Bool {
+    let ids = visibleGroups.map(\.id)
+    return !ids.isEmpty && ids.allSatisfy { expandedGroups.contains($0) }
   }
 
   var body: some View {
@@ -31,6 +45,7 @@ struct ProcessGroupTableView: View {
       VStack(spacing: 0) {
         if showsSearch {
           searchBar
+          tableTools
           separator
         }
 
@@ -78,6 +93,30 @@ struct ProcessGroupTableView: View {
     .padding(.horizontal, 14)
     .padding(.vertical, 11)
     .background(Color.black.opacity(0.14))
+  }
+
+  private var tableTools: some View {
+    HStack(spacing: 8) {
+      Text(hasSearchFilter ? "匹配 \(visibleGroups.count)，共 \(groups.count) 组" : "显示 \(visibleGroups.count)，共 \(groups.count) 组")
+        .font(.caption)
+        .foregroundStyle(ProcessWatchTheme.textSecondary)
+
+      Spacer(minLength: 8)
+
+      Button(allVisibleExpanded ? "收起结果" : "展开结果") {
+        toggleVisibleExpansion()
+      }
+      .disabled(visibleGroups.isEmpty)
+      .buttonStyle(ProcessWatchButtonStyle(kind: .subtle))
+
+      if hasSearchFilter {
+        Button("清除") { searchText = "" }
+          .buttonStyle(ProcessWatchButtonStyle(kind: .subtle))
+      }
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 8)
+    .background(Color.black.opacity(0.08))
   }
 
   private var groupHeader: some View {
@@ -282,6 +321,17 @@ struct ProcessGroupTableView: View {
       expandedGroups.remove(id)
     } else {
       expandedGroups.insert(id)
+    }
+  }
+
+  private func toggleVisibleExpansion() {
+    let ids = Set(visibleGroups.map(\.id))
+    guard !ids.isEmpty else { return }
+    if allVisibleExpanded {
+      expandedGroups.subtract(ids)
+    } else {
+      expandedGroups.formUnion(ids)
+      selectedGroupID = visibleGroups.first?.id ?? selectedGroupID
     }
   }
 

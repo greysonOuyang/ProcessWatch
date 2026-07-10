@@ -48,6 +48,7 @@ struct LogicTests {
   static func main() throws {
     try testGrouping()
     try testProcessStormState()
+    try testActiveStateDuringNotificationCooldown()
     try testSnoozeAndWhitelist()
     try testActionRecordEncoding()
     print("✓ ProcessWatch logic tests passed")
@@ -111,6 +112,57 @@ struct LogicTests {
       later.events.contains { $0.kind == .processStorm }, "Storm should alert after duration")
     try expect(!later.activeGroups.isEmpty, "Storm group should remain active")
   }
+  @MainActor
+  private static func testActiveStateDuringNotificationCooldown() throws {
+    let suiteName = "ProcessWatch.CooldownTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let settings = SettingsStore(defaults: defaults)
+    settings.cpuThreshold = 50
+    settings.cpuDuration = 2
+    settings.diskWriteMBps = 10_000
+    settings.memoryGrowthMB = 10_000
+    settings.processStormInstanceThreshold = 10_000
+
+    let detector = AnomalyDetector()
+    let start = Date(timeIntervalSince1970: 1_700_000_000)
+
+    _ = detector.evaluate(
+      processes: [process(pid: 250, cpu: 90, sampledAt: start)],
+      settings: settings,
+      now: start
+    )
+    let firstAlert = detector.evaluate(
+      processes: [process(pid: 250, cpu: 90, sampledAt: start.addingTimeInterval(3))],
+      settings: settings,
+      now: start.addingTimeInterval(3)
+    )
+    try expect(firstAlert.events.contains { $0.kind == .cpu }, "First sustained CPU anomaly should alert")
+
+    _ = detector.evaluate(
+      processes: [process(pid: 250, cpu: 0, sampledAt: start.addingTimeInterval(4))],
+      settings: settings,
+      now: start.addingTimeInterval(4)
+    )
+    _ = detector.evaluate(
+      processes: [process(pid: 250, cpu: 90, sampledAt: start.addingTimeInterval(5))],
+      settings: settings,
+      now: start.addingTimeInterval(5)
+    )
+    let recurrence = detector.evaluate(
+      processes: [process(pid: 250, cpu: 90, sampledAt: start.addingTimeInterval(8))],
+      settings: settings,
+      now: start.addingTimeInterval(8)
+    )
+
+    try expect(recurrence.events.isEmpty, "Cooldown should suppress a duplicate notification")
+    try expect(
+      recurrence.active[250]?.contains(.cpu) == true,
+      "A recurring CPU anomaly must remain active even while notification cooldown suppresses alerts"
+    )
+  }
+
   @MainActor
   private static func testSnoozeAndWhitelist() throws {
     let suiteName = "ProcessWatch.SettingsTests.\(UUID().uuidString)"

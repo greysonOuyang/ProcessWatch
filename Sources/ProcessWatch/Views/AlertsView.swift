@@ -42,27 +42,29 @@ struct AlertsView: View {
   }
 
   private var header: some View {
-    HStack(spacing: 14) {
+    PageHeaderBar {
       SectionHeading(
         title: "异常中心",
         subtitle: "处理当前问题，并回溯异常触发与用户操作记录"
       )
-      Spacer()
-      StatusPill(
-        text: model.activeAnomalyCount > 0 ? "\(model.activeAnomalyCount) 个活动异常" : "无活动异常",
-        color: model.activeAnomalyCount > 0 ? ProcessWatchTheme.red : ProcessWatchTheme.teal
-      )
-      StatusPill(
-        text: "\(model.history.events.count) 条历史",
-        color: ProcessWatchTheme.blue
-      )
+    } actions: {
+      HStack(spacing: 8) {
+        StatusPill(
+          text: model.activeAnomalyCount > 0 ? "\(model.activeAnomalyCount) 个活动异常" : "无活动异常",
+          color: model.activeAnomalyCount > 0 ? ProcessWatchTheme.red : ProcessWatchTheme.teal
+        )
+        StatusPill(
+          text: "\(model.history.events.count) 条历史",
+          color: ProcessWatchTheme.blue
+        )
+      }
     }
   }
 
   @ViewBuilder
   private var activeContent: some View {
     if model.anomalousGroups.isEmpty {
-      HSplitView {
+      DashboardSplit {
         DashboardCard {
           VStack(spacing: 14) {
             Image(systemName: "checkmark.shield.fill")
@@ -83,27 +85,18 @@ struct AlertsView: View {
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .padding(30)
         }
-        .frame(minWidth: 620, maxWidth: .infinity, maxHeight: .infinity)
-
+      } trailing: {
         recentHistory
-          .frame(minWidth: 340, idealWidth: 390, maxWidth: 470, maxHeight: .infinity)
       }
     } else {
-      HSplitView {
+      DashboardSplit {
         ProcessGroupTableView(
           groups: model.anomalousGroups,
           selectedGroupID: $selectedGroupID,
           showsSearch: false
         )
-        .frame(minWidth: 650, maxWidth: .infinity, maxHeight: .infinity)
-
+      } trailing: {
         AnomalyActionPanel(group: selectedGroup)
-          .frame(
-            minWidth: 350,
-            idealWidth: ProcessWatchLayout.detailPanelWidth,
-            maxWidth: 470,
-            maxHeight: .infinity
-          )
       }
     }
   }

@@ -37,23 +37,16 @@ struct ProcessListView: View {
     VStack(spacing: ProcessWatchLayout.sectionGap) {
       header
 
-      HSplitView {
+      DashboardSplit {
         ProcessGroupTableView(
           groups: displayedGroups,
           selectedGroupID: $selectedGroupID,
           showsSearch: true
         )
-        .frame(minWidth: 650, maxWidth: .infinity, maxHeight: .infinity)
-
+      } trailing: {
         AnomalyActionPanel(group: selectedGroup)
-          .frame(
-            minWidth: 350,
-            idealWidth: ProcessWatchLayout.detailPanelWidth,
-            maxWidth: 470,
-            maxHeight: .infinity
-          )
       }
-      .frame(maxHeight: .infinity)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     .padding(.horizontal, ProcessWatchLayout.pageHorizontal)
     .padding(.vertical, ProcessWatchLayout.pageVertical)
@@ -62,29 +55,30 @@ struct ProcessListView: View {
   }
 
   private var header: some View {
-    HStack(spacing: 14) {
+    PageHeaderBar {
       SectionHeading(
         title: "进程分析",
         subtitle: "按完整可执行文件路径聚合；展开后查看 PID、PPID、命令和工作目录"
       )
-      Spacer()
+    } actions: {
+      HStack(spacing: 10) {
+        Toggle("仅异常", isOn: $onlyAnomalies)
+          .toggleStyle(.switch)
+          .controlSize(.small)
 
-      Toggle("仅异常", isOn: $onlyAnomalies)
-        .toggleStyle(.switch)
-        .controlSize(.small)
-
-      Picker("排序", selection: $sortMode) {
-        ForEach(SortMode.allCases) { mode in
-          Text(mode.rawValue).tag(mode)
+        Picker("排序", selection: $sortMode) {
+          ForEach(SortMode.allCases) { mode in
+            Text(mode.rawValue).tag(mode)
+          }
         }
-      }
-      .pickerStyle(.menu)
-      .frame(width: 128)
+        .pickerStyle(.menu)
+        .frame(width: 128)
 
-      StatusPill(
-        text: "\(displayedGroups.count) 组 · \(displayedGroups.reduce(0) { $0 + $1.instanceCount }) 实例",
-        color: ProcessWatchTheme.blue
-      )
+        StatusPill(
+          text: "\(displayedGroups.count) 组 · \(displayedGroups.reduce(0) { $0 + $1.instanceCount }) 实例",
+          color: ProcessWatchTheme.blue
+        )
+      }
     }
   }
 
