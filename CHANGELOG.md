@@ -7,6 +7,7 @@
 - Added repo-harness runtime directories to `.gitignore` so public clones remain clean.
 - Refreshed the open-source release audit and prepared the first source-only public beta release.
 - Kept unsigned or ad-hoc-signed binaries out of the public release until Developer ID signing, notarization, and cross-architecture validation are complete.
+- Removed a stale source-check requirement for a nonexistent v1.5.1 implementation-plan document.
 
 ## 1.5.1
 
