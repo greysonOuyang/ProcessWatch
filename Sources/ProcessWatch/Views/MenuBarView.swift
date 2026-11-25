@@ -74,10 +74,10 @@ struct MenuBarView: View {
         subtitle: formatPercent(model.system.memoryPercent)
       )
       MetricTile(
-        title: "孤儿进程",
-        value: "\(model.totalOrphanCount)",
-        accent: model.totalOrphanCount > 0 ? ProcessWatchTheme.amber : ProcessWatchTheme.teal,
-        subtitle: "\(model.processGroups.count) 个进程组"
+        title: "可处理异常",
+        value: "\(model.actionableAnomalyGroupCount)",
+        accent: model.actionableAnomalyGroupCount > 0 ? ProcessWatchTheme.amber : ProcessWatchTheme.teal,
+        subtitle: "\(model.anomalyContributorGroupCount) 个异常贡献组"
       )
     }
   }
@@ -171,7 +171,7 @@ struct MenuBarView: View {
                       .font(.callout.weight(.medium))
                       .foregroundStyle(ProcessWatchTheme.textPrimary)
                       .lineLimit(1)
-                    Text(group.orphanCount > 0 ? "孤儿 \(group.orphanCount) · 最长 \(formatCompactDuration(group.longestRuntime))" : "最长 \(formatCompactDuration(group.longestRuntime))")
+                    Text("可操作 \(group.actionableProcessCount)/\(group.instanceCount) · 最长 \(formatCompactDuration(group.longestRuntime))")
                       .font(.caption2)
                       .foregroundStyle(ProcessWatchTheme.textTertiary)
                   }

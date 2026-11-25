@@ -6,7 +6,7 @@ struct ProcessListView: View {
     case memory = "内存"
     case diskWrite = "磁盘写入"
     case instances = "实例数"
-    case orphans = "孤儿进程"
+    case actionable = "可操作实例"
 
     var id: String { rawValue }
   }
@@ -28,7 +28,7 @@ struct ProcessListView: View {
       case .memory: return lhs.memoryBytes > rhs.memoryBytes
       case .diskWrite: return lhs.diskWriteBytesPerSecond > rhs.diskWriteBytesPerSecond
       case .instances: return lhs.instanceCount > rhs.instanceCount
-      case .orphans: return lhs.orphanCount > rhs.orphanCount
+      case .actionable: return lhs.actionableProcessCount > rhs.actionableProcessCount
       }
     }
   }

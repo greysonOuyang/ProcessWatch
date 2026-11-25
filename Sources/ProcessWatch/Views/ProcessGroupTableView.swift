@@ -10,6 +10,7 @@ struct ProcessGroupTableView: View {
 
   @State private var expandedGroups: Set<String> = []
   @State private var searchText = ""
+  @State private var hoveredGroupID: String?
 
   private var trimmedSearchText: String {
     searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -128,8 +129,8 @@ struct ProcessGroupTableView: View {
         .frame(width: 74, alignment: .trailing)
       Text("内存")
         .frame(width: 88, alignment: .trailing)
-      Text("孤儿")
-        .frame(width: 44, alignment: .trailing)
+      Text("可操作")
+        .frame(width: 54, alignment: .trailing)
       Text("最长运行")
         .frame(width: 82, alignment: .trailing)
     }
@@ -161,6 +162,7 @@ struct ProcessGroupTableView: View {
 
   private func groupRow(_ group: ProcessGroupSnapshot) -> some View {
     let kinds = model.anomalyKinds(for: group)
+    let diagnosis = model.diagnosis(for: group)
     let isSelected = selectedGroupID == group.id
 
     return HStack(spacing: 10) {
@@ -188,6 +190,9 @@ struct ProcessGroupTableView: View {
           if let kind = kinds.sorted(by: { $0.rawValue < $1.rawValue }).first {
             StatusPill(text: kind.shortName, color: ProcessWatchTheme.red)
           }
+          if diagnosis.score >= 20 {
+            StatusPill(text: "嫌疑 \(diagnosis.score)", color: suspicionColor(diagnosis.score))
+          }
           if model.settings.isSnoozed(group) {
             StatusPill(text: "临时忽略", color: ProcessWatchTheme.blue)
           } else if model.settings.isIgnored(group) {
@@ -211,9 +216,9 @@ struct ProcessGroupTableView: View {
       )
       metric(formatBytes(group.memoryBytes), width: 88, color: ProcessWatchTheme.textPrimary)
       metric(
-        "\(group.orphanCount)",
-        width: 44,
-        color: group.orphanCount > 0 ? ProcessWatchTheme.amber : ProcessWatchTheme.textSecondary
+        "\(group.actionableProcessCount)/\(group.instanceCount)",
+        width: 54,
+        color: group.actionableProcessCount > 0 ? ProcessWatchTheme.teal : ProcessWatchTheme.textSecondary
       )
       metric(
         formatCompactDuration(group.longestRuntime),
@@ -223,8 +228,29 @@ struct ProcessGroupTableView: View {
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 10)
-    .background(isSelected ? ProcessWatchTheme.surfaceSelected : Color.clear)
+    .background {
+      if isSelected {
+        HStack(spacing: 0) {
+          RoundedRectangle(cornerRadius: 2, style: .continuous)
+            .fill(ProcessWatchTheme.accent)
+            .frame(width: 3)
+            .padding(.vertical, 8)
+            .shadow(color: ProcessWatchTheme.accent.opacity(0.55), radius: 3)
+          ProcessWatchTheme.surfaceSelected
+        }
+      } else if hoveredGroupID == group.id {
+        ProcessWatchTheme.surfaceHover
+      }
+    }
     .contentShape(Rectangle())
+    .onHover { hovering in
+      if hovering {
+        hoveredGroupID = group.id
+      } else if hoveredGroupID == group.id {
+        hoveredGroupID = nil
+      }
+    }
+    .animation(.easeOut(duration: 0.12), value: hoveredGroupID)
     .onTapGesture {
       selectedGroupID = group.id
     }
@@ -240,6 +266,7 @@ struct ProcessGroupTableView: View {
       processHeader
 
       ForEach(group.processes) { process in
+        let safety = process.safetyAssessment
         HStack(spacing: 10) {
           Text("\(process.pid)")
             .frame(width: 58, alignment: .trailing)
@@ -269,13 +296,14 @@ struct ProcessGroupTableView: View {
 
           HStack(spacing: 4) {
             Circle()
-              .fill(process.isOrphan ? ProcessWatchTheme.amber : ProcessWatchTheme.teal)
+              .fill(safety.canTerminate ? ProcessWatchTheme.teal : ProcessWatchTheme.amber)
               .frame(width: 6, height: 6)
-            Text(process.isOrphan ? "孤儿" : "正常")
+            Text(safety.canTerminate ? "可操作" : safety.actionability.rawValue)
           }
           .font(.caption2)
-          .foregroundStyle(process.isOrphan ? ProcessWatchTheme.amber : ProcessWatchTheme.textSecondary)
-          .frame(width: 54, alignment: .trailing)
+          .foregroundStyle(safety.canTerminate ? ProcessWatchTheme.teal : ProcessWatchTheme.amber)
+          .frame(width: 82, alignment: .trailing)
+          .help(safety.reason)
         }
         .padding(.leading, 42)
         .padding(.trailing, 14)
@@ -299,7 +327,7 @@ struct ProcessGroupTableView: View {
       Text("完整命令 / 父进程 / 工作目录").frame(maxWidth: .infinity, alignment: .leading)
       Text("CPU").frame(width: 66, alignment: .trailing)
       Text("内存").frame(width: 82, alignment: .trailing)
-      Text("状态").frame(width: 54, alignment: .trailing)
+      Text("操作状态").frame(width: 82, alignment: .trailing)
     }
     .font(.caption2.weight(.medium))
     .foregroundStyle(ProcessWatchTheme.textTertiary)
@@ -336,13 +364,31 @@ struct ProcessGroupTableView: View {
   }
 
   private func processIcon(group: ProcessGroupSnapshot, kinds: Set<AnomalyKind>) -> some View {
-    ZStack {
-      RoundedRectangle(cornerRadius: 7, style: .continuous)
-        .fill((kinds.isEmpty ? ProcessWatchTheme.teal : ProcessWatchTheme.red).opacity(0.12))
+    let tint = kinds.isEmpty ? ProcessWatchTheme.teal : ProcessWatchTheme.red
+    return ZStack {
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .fill(
+          LinearGradient(
+            colors: [tint.opacity(0.20), tint.opacity(0.08)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+        )
+        .overlay(
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .stroke(tint.opacity(0.22), lineWidth: 1)
+        )
       Image(systemName: group.affiliationSummary == nil ? "terminal" : "shippingbox.fill")
-        .foregroundStyle(kinds.isEmpty ? ProcessWatchTheme.teal : ProcessWatchTheme.red)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(tint)
     }
-    .frame(width: 30, height: 30)
+    .frame(width: 32, height: 32)
+  }
+
+  private func suspicionColor(_ score: Int) -> Color {
+    if score >= 70 { return ProcessWatchTheme.red }
+    if score >= 40 { return ProcessWatchTheme.amber }
+    return ProcessWatchTheme.blue
   }
 
   private func metric(_ text: String, width: CGFloat, color: Color) -> some View {

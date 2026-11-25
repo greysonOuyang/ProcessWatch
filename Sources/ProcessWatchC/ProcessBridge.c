@@ -133,6 +133,9 @@ bool pw_read_process(int32_t pid, PWProcessSample *sample) {
     const int bsd_bytes = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsd_info, sizeof(bsd_info));
     if (bsd_bytes == sizeof(bsd_info)) {
         sample->ppid = (int32_t)bsd_info.pbi_ppid;
+        sample->user_id = (uint32_t)bsd_info.pbi_ruid;
+        sample->effective_user_id = (uint32_t)bsd_info.pbi_uid;
+        sample->identity_reliable = true;
         sample->start_time_sec = (int64_t)bsd_info.pbi_start_tvsec;
         sample->start_time_usec = (int32_t)bsd_info.pbi_start_tvusec;
     }
@@ -166,6 +169,18 @@ bool pw_read_process(int32_t pid, PWProcessSample *sample) {
 
 int32_t pw_process_sample_ppid(const PWProcessSample *sample) {
     return sample == NULL ? 0 : sample->ppid;
+}
+
+uint32_t pw_process_sample_user_id(const PWProcessSample *sample) {
+    return sample == NULL ? 0 : sample->user_id;
+}
+
+uint32_t pw_process_sample_effective_user_id(const PWProcessSample *sample) {
+    return sample == NULL ? 0 : sample->effective_user_id;
+}
+
+bool pw_process_sample_identity_reliable(const PWProcessSample *sample) {
+    return sample != NULL && sample->identity_reliable;
 }
 
 int64_t pw_process_sample_start_time_sec(const PWProcessSample *sample) {

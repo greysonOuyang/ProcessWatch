@@ -122,7 +122,7 @@ final class AnomalyDetector {
                 kind: .processStorm,
                 title: "检测到进程风暴",
                 detail:
-                  "同一可执行文件存在 \(group.instanceCount) 个实例，CPU 合计 \(formatPercent(group.cpuPercent))，内存合计 \(formatBytes(group.memoryBytes))，其中孤儿进程 \(group.orphanCount) 个，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
+                  "同一可执行文件存在 \(group.instanceCount) 个实例，CPU 合计 \(formatPercent(group.cpuPercent))，内存合计 \(formatBytes(group.memoryBytes))，其中 \(group.launchdManagedCount) 个由 launchd 管理，已持续约 \(formatDuration(now.timeIntervalSince(since)))。"
               ))
             tracker.lastAlertAt[.processStorm] = now
           }
@@ -132,29 +132,10 @@ final class AnomalyDetector {
         tracker.activeKinds.remove(.processStorm)
       }
 
-      let repoHarnessOrphans = group.processes.filter {
-        $0.isOrphan && $0.affiliation.belongsToRepoHarness
-          && $0.runtime >= settings.repoHarnessOrphanDuration
-      }
-      let isRepoHarnessLeak = isStorm && !repoHarnessOrphans.isEmpty
-
-      if isRepoHarnessLeak {
-        let shouldNotify = shouldAlert(.repoHarnessLeak, tracker: tracker, now: now)
-        tracker.activeKinds.insert(.repoHarnessLeak)
-        if shouldNotify {
-          generated.append(
-            makeGroupEvent(
-              group: group,
-              kind: .repoHarnessLeak,
-              title: "repo-harness 疑似进程泄漏",
-              detail:
-                "检测到 \(repoHarnessOrphans.count) 个运行超过 \(formatDuration(settings.repoHarnessOrphanDuration)) 的孤儿 \(group.name) 进程；同一可执行文件当前共有 \(group.instanceCount) 个实例。"
-            ))
-          tracker.lastAlertAt[.repoHarnessLeak] = now
-        }
-      } else {
-        tracker.activeKinds.remove(.repoHarnessLeak)
-      }
+      // PPID == 1 only means launchd is managing or has adopted the process. It is not
+      // sufficient evidence of a leak, so the legacy repo-harness leak rule remains disabled
+      // until a stronger lifecycle signal is available.
+      tracker.activeKinds.remove(.repoHarnessLeak)
 
       groupTrackers[group.id] = tracker
     }

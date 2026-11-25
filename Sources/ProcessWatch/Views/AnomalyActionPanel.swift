@@ -7,6 +7,7 @@ struct AnomalyActionPanel: View {
   let group: ProcessGroupSnapshot?
 
   @State private var alertState: ActionAlertState?
+  @State private var isVerifying = false
 
   var body: some View {
     DashboardCard(padding: 0, elevated: true) {
@@ -95,6 +96,10 @@ struct AnomalyActionPanel: View {
             if let affiliation = group.affiliationSummary {
               StatusPill(text: affiliation, color: ProcessWatchTheme.amber)
             }
+            let diagnosis = model.diagnosis(for: group)
+            if diagnosis.score >= 20 {
+              StatusPill(text: "嫌疑 \(diagnosis.score)", color: severityColor(for: group))
+            }
           }
         }
         Spacer(minLength: 0)
@@ -117,12 +122,24 @@ struct AnomalyActionPanel: View {
   }
 
   private func anomalySummary(_ group: ProcessGroupSnapshot) -> some View {
-    let kinds = model.anomalyKinds(for: group)
+    let diagnosis = model.diagnosis(for: group)
     return VStack(alignment: .leading, spacing: 12) {
-      Text(explanation(for: group, kinds: kinds))
+      Text(diagnosis.summary)
         .font(.callout)
         .foregroundStyle(ProcessWatchTheme.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
+
+      VStack(alignment: .leading, spacing: 6) {
+        ForEach(Array(diagnosis.evidence.prefix(4)), id: \.self) { item in
+          Label(item, systemImage: "checkmark.circle")
+            .font(.caption)
+            .foregroundStyle(ProcessWatchTheme.textSecondary)
+        }
+        Label(diagnosis.recommendedAction, systemImage: "arrow.right.circle.fill")
+          .font(.caption.weight(.medium))
+          .foregroundStyle(ProcessWatchTheme.amber)
+          .fixedSize(horizontal: false, vertical: true)
+      }
 
       HStack(spacing: 8) {
         MetricTile(
@@ -138,9 +155,10 @@ struct AnomalyActionPanel: View {
           subtitle: "结束后由 macOS 回收"
         )
         MetricTile(
-          title: "孤儿实例",
-          value: "\(group.orphanCount)",
-          accent: group.orphanCount > 0 ? ProcessWatchTheme.red : ProcessWatchTheme.teal
+          title: "可操作实例",
+          value: "\(group.actionableProcessCount) / \(group.instanceCount)",
+          accent: group.actionableProcessCount > 0 ? ProcessWatchTheme.teal : ProcessWatchTheme.textSecondary,
+          subtitle: "\(group.launchdManagedCount) 个由 launchd 管理"
         )
       }
 
@@ -157,42 +175,66 @@ struct AnomalyActionPanel: View {
   }
 
   private func remediationActions(_ group: ProcessGroupSnapshot) -> some View {
-    VStack(alignment: .leading, spacing: 9) {
-      Text("释放资源")
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(ProcessWatchTheme.textSecondary)
-
-      if group.orphanCount > 0 {
-        actionButton(
-          title: "只结束孤儿进程",
-          subtitle: "优先处理 PPID = 1 的 \(group.orphanCount) 个实例",
-          systemImage: "link.badge.plus",
-          color: ProcessWatchTheme.amber,
-          prominent: true
-        ) { alertState = .confirm(.orphans) }
+    let actionableCount = group.actionableProcessCount
+    return VStack(alignment: .leading, spacing: 9) {
+      HStack {
+        Text("安全操作")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(ProcessWatchTheme.textSecondary)
+        Spacer()
+        if isVerifying {
+          ProgressView()
+            .controlSize(.small)
+          Text("正在确认退出与资源变化")
+            .font(.caption2)
+            .foregroundStyle(ProcessWatchTheme.textSecondary)
+        }
       }
 
-      actionButton(
-        title: "只结束高占用实例",
-        subtitle: "仅处理 CPU ≥ \(formatPercent(model.settings.cpuThreshold)) 的实例",
-        systemImage: "flame",
-        color: ProcessWatchTheme.amber,
-        prominent: group.orphanCount == 0
-      ) { alertState = .confirm(.highUsage) }
+      if actionableCount == 0 {
+        Label(
+          "该组没有通过所有者、路径和启动身份校验的可操作进程。ProcessWatch 不会向这些实例发送信号。",
+          systemImage: "lock.shield"
+        )
+        .font(.caption)
+        .foregroundStyle(ProcessWatchTheme.amber)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+          ProcessWatchTheme.amber.opacity(0.09),
+          in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+        )
+      } else {
+        if group.blockedProcessCount > 0 {
+          Text("仅 \(actionableCount) / \(group.instanceCount) 个实例属于当前用户且身份完整；其余实例会被自动跳过。")
+            .font(.caption2)
+            .foregroundStyle(ProcessWatchTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
 
-      actionButton(
-        title: "优雅结束整个进程组",
-        subtitle: "发送 SIGTERM，让进程有机会保存和清理",
-        systemImage: "xmark.circle",
-        color: ProcessWatchTheme.red
-      ) { alertState = .confirm(.terminate) }
+        actionButton(
+          title: "只结束高占用实例",
+          subtitle: "仅处理 CPU ≥ \(formatPercent(model.settings.cpuThreshold)) 且通过安全校验的实例",
+          systemImage: "flame",
+          color: ProcessWatchTheme.amber,
+          prominent: true
+        ) { alertState = .confirm(.highUsage) }
 
-      actionButton(
-        title: "强制退出整个进程组",
-        subtitle: "发送 SIGKILL，仅在优雅结束无效时使用",
-        systemImage: "bolt.trianglebadge.exclamationmark",
-        color: ProcessWatchTheme.red
-      ) { alertState = .confirm(.forceQuit) }
+        actionButton(
+          title: "优雅结束可操作实例",
+          subtitle: "向通过身份校验的当前用户进程发送 SIGTERM",
+          systemImage: "xmark.circle",
+          color: ProcessWatchTheme.red
+        ) { alertState = .confirm(.terminate) }
+
+        actionButton(
+          title: "强制退出可操作实例",
+          subtitle: "发送 SIGKILL，仅在优雅结束无效时使用",
+          systemImage: "bolt.trianglebadge.exclamationmark",
+          color: ProcessWatchTheme.red
+        ) { alertState = .confirm(.forceQuit) }
+      }
     }
     .padding(16)
   }
@@ -263,7 +305,7 @@ struct AnomalyActionPanel: View {
       Label("关于“清理内存”", systemImage: "shield.lefthalf.filled")
         .font(.caption.weight(.semibold))
         .foregroundStyle(ProcessWatchTheme.teal)
-      Text("macOS 没有安全、通用的一键清内存接口。结束确认异常的进程后，系统会自动回收其内存、CPU 时间片和文件句柄。自定义脚本由你选择并确认，ProcessWatch 不提升权限、不自动删除缓存。")
+      Text("macOS 没有安全、通用的一键清内存接口。ProcessWatch 只允许操作身份完整且属于当前用户的进程，并会在发送信号前重新校验 PID、路径、所有者和启动时间。自定义脚本由你选择并确认，ProcessWatch 不提升权限、不自动删除缓存。")
         .font(.caption2)
         .foregroundStyle(ProcessWatchTheme.textSecondary)
         .fixedSize(horizontal: false, vertical: true)
@@ -314,6 +356,7 @@ struct AnomalyActionPanel: View {
       .foregroundStyle(prominent ? Color.white : color)
     }
     .buttonStyle(.plain)
+    .disabled(isVerifying)
   }
 
   private func smallAction(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
@@ -350,7 +393,7 @@ struct AnomalyActionPanel: View {
 
   private func explanation(for group: ProcessGroupSnapshot, kinds: Set<AnomalyKind>) -> String {
     if kinds.contains(.repoHarnessLeak) {
-      return "该进程组包含 \(group.orphanCount) 个孤儿实例，并与 repo-harness 调用链相关。优先只结束孤儿进程，避免中断仍在使用的任务。"
+      return "该进程组满足 repo-harness 专用生命周期规则。操作前仍需核对完整命令，并且只处理通过身份校验的当前用户进程。"
     }
     if kinds.contains(.processStorm) {
       return "同一可执行文件存在 \(group.instanceCount) 个实例。持续增加通常意味着任务回收失败、重复启动或进程泄漏。"
@@ -391,8 +434,6 @@ struct AnomalyActionPanel: View {
       finish(ProcessActionService.terminate(group), action: .terminate, group: group)
     case .forceQuit:
       finish(ProcessActionService.forceQuit(group), action: .forceQuit, group: group)
-    case .orphans:
-      finish(ProcessActionService.terminateOrphans(group), action: .terminateOrphans, group: group)
     case .highUsage:
       finish(
         ProcessActionService.terminateHighUsage(group, cpuThreshold: model.settings.cpuThreshold),
@@ -419,24 +460,27 @@ struct AnomalyActionPanel: View {
     action: UserActionKind,
     group: ProcessGroupSnapshot
   ) {
-    let outcome: UserActionOutcome
-    if report.attempted == 0 || report.succeeded == 0 {
-      outcome = .failed
-    } else if report.failed > 0 {
-      outcome = .partial
-    } else {
-      outcome = .success
+    guard report.attempted > 0, report.succeeded > 0 else {
+      record(action, group: group, outcome: .failed, detail: report.summary)
+      showResult(report.summary)
+      return
     }
-    record(
-      action,
-      group: group,
-      outcome: outcome,
-      detail: report.summary,
-      attempted: report.attempted,
-      succeeded: report.succeeded,
-      failed: report.failed
-    )
-    showResult(report.summary)
+
+    isVerifying = true
+    Task { @MainActor in
+      let assessment = await model.verifyProcessAction(report, originalGroup: group)
+      isVerifying = false
+      record(
+        action,
+        group: group,
+        outcome: assessment.outcome,
+        detail: assessment.summary,
+        attempted: report.attempted,
+        succeeded: assessment.exitedPIDs.count,
+        failed: report.failed + assessment.remainingPIDs.count
+      )
+      showResult(assessment.summary)
+    }
   }
 
   private func record(
@@ -478,7 +522,6 @@ private enum ActionAlertState: Identifiable {
 private enum PendingGroupAction: Identifiable {
   case terminate
   case forceQuit
-  case orphans
   case highUsage
   case script(URL)
 
@@ -486,7 +529,6 @@ private enum PendingGroupAction: Identifiable {
     switch self {
     case .terminate: return "terminate"
     case .forceQuit: return "forceQuit"
-    case .orphans: return "orphans"
     case .highUsage: return "highUsage"
     case .script(let url): return "script:\(url.path)"
     }
@@ -494,9 +536,8 @@ private enum PendingGroupAction: Identifiable {
 
   var title: String {
     switch self {
-    case .terminate: return "优雅结束整个进程组？"
-    case .forceQuit: return "强制退出整个进程组？"
-    case .orphans: return "结束孤儿进程？"
+    case .terminate: return "优雅结束可操作实例？"
+    case .forceQuit: return "强制退出可操作实例？"
     case .highUsage: return "结束高占用实例？"
     case .script: return "运行自定义清理脚本？"
     }
@@ -514,11 +555,9 @@ private enum PendingGroupAction: Identifiable {
     guard let group else { return "没有选中的进程组。" }
     switch self {
     case .terminate:
-      return "将向 \(group.instanceCount) 个可操作实例发送 SIGTERM。未保存的工作可能丢失。"
+      return "将向 \(group.actionableProcessCount) 个通过安全校验的实例发送 SIGTERM。发送前会再次核对身份；未保存的工作可能丢失。"
     case .forceQuit:
-      return "将向 \(group.instanceCount) 个可操作实例发送 SIGKILL，进程没有机会保存数据或清理临时文件。"
-    case .orphans:
-      return "将只处理 \(group.orphanCount) 个 PPID = 1 的实例。请确认它们确实不再被任务使用。"
+      return "将向 \(group.actionableProcessCount) 个通过安全校验的实例发送 SIGKILL，进程没有机会保存数据或清理临时文件。"
     case .highUsage:
       return "将只处理当前 CPU 超过阈值的实例。采样数据存在延迟，执行前请再次确认命令。"
     case .script(let url):

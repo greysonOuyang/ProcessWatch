@@ -18,7 +18,10 @@ xcrun swiftc \
   "$ROOT_DIR/Sources/ProcessWatch/Models/AnomalyEvent.swift" \
   "$ROOT_DIR/Sources/ProcessWatch/Models/ActionRecord.swift" \
   "$ROOT_DIR/Sources/ProcessWatch/Models/ProcessSnapshot.swift" \
+  "$ROOT_DIR/Sources/ProcessWatch/Models/SystemSnapshot.swift" \
+  "$ROOT_DIR/Sources/ProcessWatch/Models/DiagnosisModels.swift" \
   "$ROOT_DIR/Sources/ProcessWatch/Services/SettingsStore.swift" \
+  "$ROOT_DIR/Sources/ProcessWatch/Services/ProcessActionService.swift" \
   "$ROOT_DIR/Sources/ProcessWatch/Monitoring/AnomalyDetector.swift" \
   "$ROOT_DIR/Tests/LogicTests.swift" \
   -o "$BINARY"

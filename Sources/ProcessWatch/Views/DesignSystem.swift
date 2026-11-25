@@ -1,41 +1,63 @@
 import SwiftUI
 
 enum ProcessWatchLayout {
-  static let pageHorizontal: CGFloat = 24
-  static let pageVertical: CGFloat = 22
+  static let pageHorizontal: CGFloat = 26
+  static let pageVertical: CGFloat = 20
   static let sectionGap: CGFloat = 16
-  static let cardGap: CGFloat = 12
+  static let cardGap: CGFloat = 14
   static let panelGap: CGFloat = 16
-  static let cardRadius: CGFloat = 14
+  static let cardRadius: CGFloat = 16
   static let compactRadius: CGFloat = 10
   static let detailPanelWidth: CGFloat = 420
   static let compactDetailPanelWidth: CGFloat = 360
+  static let sidebarWidth: CGFloat = 216
 }
 
 enum ProcessWatchTheme {
-  static let backgroundTop = Color(red: 0.075, green: 0.068, blue: 0.058)
-  static let backgroundMiddle = Color(red: 0.047, green: 0.047, blue: 0.050)
-  static let backgroundBottom = Color(red: 0.029, green: 0.030, blue: 0.034)
-  static let surface = Color(red: 0.105, green: 0.100, blue: 0.092)
-  static let surfaceRaised = Color(red: 0.132, green: 0.124, blue: 0.111)
-  static let surfaceSoft = Color.white.opacity(0.045)
-  static let surfaceSelected = Color(red: 0.31, green: 0.225, blue: 0.125).opacity(0.42)
-  static let border = Color.white.opacity(0.095)
-  static let borderStrong = Color.white.opacity(0.16)
-  static let textPrimary = Color.white.opacity(0.94)
-  static let textSecondary = Color.white.opacity(0.64)
-  static let textTertiary = Color.white.opacity(0.42)
-  static let amber = Color(red: 0.94, green: 0.64, blue: 0.28)
-  static let teal = Color(red: 0.29, green: 0.77, blue: 0.61)
-  static let blue = Color(red: 0.31, green: 0.64, blue: 0.94)
-  static let red = Color(red: 0.92, green: 0.34, blue: 0.32)
+  // Cool graphite base — deeper and more neutral than the old warm brown palette.
+  static let backgroundTop = Color(red: 0.078, green: 0.082, blue: 0.098)
+  static let backgroundMiddle = Color(red: 0.052, green: 0.056, blue: 0.070)
+  static let backgroundBottom = Color(red: 0.032, green: 0.035, blue: 0.046)
+  static let surface = Color(red: 0.108, green: 0.114, blue: 0.135)
+  static let surfaceRaised = Color(red: 0.138, green: 0.145, blue: 0.168)
+  static let surfaceSoft = Color.white.opacity(0.05)
+  static let surfaceHover = Color.white.opacity(0.065)
+  static let surfaceSelected = Color(red: 0.96, green: 0.66, blue: 0.30).opacity(0.16)
+  static let border = Color.white.opacity(0.085)
+  static let borderStrong = Color.white.opacity(0.15)
+  static let textPrimary = Color.white.opacity(0.95)
+  static let textSecondary = Color.white.opacity(0.62)
+  static let textTertiary = Color.white.opacity(0.40)
+  static let amber = Color(red: 0.96, green: 0.66, blue: 0.30)
+  static let teal = Color(red: 0.30, green: 0.80, blue: 0.64)
+  static let blue = Color(red: 0.35, green: 0.66, blue: 0.98)
+  static let red = Color(red: 0.95, green: 0.38, blue: 0.34)
+  static let purple = Color(red: 0.68, green: 0.55, blue: 0.98)
+
+  /// Brand accent used across the shell.
+  static let accent = amber
 
   static var windowBackground: some View {
-    LinearGradient(
-      colors: [backgroundTop, backgroundMiddle, backgroundBottom],
-      startPoint: .topLeading,
-      endPoint: .bottomTrailing
-    )
+    ZStack {
+      LinearGradient(
+        colors: [backgroundTop, backgroundMiddle, backgroundBottom],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
+      // Soft aurora glows give the dark UI depth without hurting readability.
+      RadialGradient(
+        colors: [amber.opacity(0.10), Color.clear],
+        center: .topLeading,
+        startRadius: 0,
+        endRadius: 560
+      )
+      RadialGradient(
+        colors: [blue.opacity(0.07), Color.clear],
+        center: .bottomTrailing,
+        startRadius: 0,
+        endRadius: 620
+      )
+    }
   }
 
   static var popoverBackground: some View {
@@ -125,7 +147,19 @@ struct DashboardCard<Content: View>: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
           .stroke(elevated ? ProcessWatchTheme.borderStrong : ProcessWatchTheme.border, lineWidth: 1)
       )
-      .shadow(color: .black.opacity(elevated ? 0.24 : 0.12), radius: elevated ? 18 : 10, y: elevated ? 10 : 5)
+      // Hairline top highlight sells the "raised glass" material.
+      .overlay(
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+          .stroke(
+            LinearGradient(
+              colors: [Color.white.opacity(elevated ? 0.10 : 0.06), Color.clear],
+              startPoint: .top,
+              endPoint: .center
+            ),
+            lineWidth: 1
+          )
+      )
+      .shadow(color: .black.opacity(elevated ? 0.30 : 0.16), radius: elevated ? 20 : 12, y: elevated ? 10 : 6)
   }
 }
 
@@ -140,10 +174,10 @@ struct StatusPill: View {
       .padding(.horizontal, 8)
       .padding(.vertical, 4)
       .foregroundStyle(color)
-      .background(color.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+      .background(color.opacity(0.14), in: Capsule())
       .overlay(
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-          .stroke(color.opacity(0.18), lineWidth: 1)
+        Capsule()
+          .stroke(color.opacity(0.20), lineWidth: 1)
       )
   }
 }
@@ -155,7 +189,7 @@ struct SectionHeading: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(title)
-        .font(.title2.weight(.semibold))
+        .font(.title2.weight(.bold))
         .foregroundStyle(ProcessWatchTheme.textPrimary)
       Text(subtitle)
         .font(.caption)
@@ -243,51 +277,106 @@ struct Sparkline: View {
       let minValue = values.min() ?? 0
       let maxValue = values.max() ?? 1
       let range = max(maxValue - minValue, max(abs(maxValue), 1) * 0.08)
-      let path = linePath(in: proxy.size, minValue: minValue, range: range)
+      let samples = samplePoints(in: proxy.size, minValue: minValue, range: range)
 
       ZStack {
-        if fill, points.count > 1 {
-          areaPath(in: proxy.size, minValue: minValue, range: range)
+        if fill, samples.count > 1 {
+          smoothAreaPath(samples: samples, in: proxy.size)
             .fill(
               LinearGradient(
-                colors: [color.opacity(0.24), color.opacity(0.01)],
+                colors: [color.opacity(0.30), color.opacity(0.02)],
                 startPoint: .top,
                 endPoint: .bottom
               )
             )
         }
 
-        path
-          .stroke(color, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
-          .shadow(color: color.opacity(0.30), radius: 4)
+        smoothLinePath(samples: samples)
+          .stroke(color, style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+          .shadow(color: color.opacity(0.35), radius: 4)
+
+        if let last = samples.last {
+          Circle()
+            .fill(color)
+            .frame(width: 5, height: 5)
+            .shadow(color: color.opacity(0.8), radius: 3)
+            .position(last)
+        }
       }
     }
     .accessibilityHidden(true)
   }
 
-  private func linePath(in size: CGSize, minValue: Double, range: Double) -> Path {
-    var path = Path()
-    guard points.count > 1 else { return path }
-    for (index, point) in points.enumerated() {
+  private func samplePoints(in size: CGSize, minValue: Double, range: Double) -> [CGPoint] {
+    guard points.count > 1 else { return [] }
+    return points.enumerated().map { index, point in
       let x = size.width * CGFloat(index) / CGFloat(max(points.count - 1, 1))
       let normalized = (point.value - minValue) / range
       let y = size.height - size.height * CGFloat(normalized)
-      if index == 0 {
-        path.move(to: CGPoint(x: x, y: y))
-      } else {
-        path.addLine(to: CGPoint(x: x, y: y))
-      }
+      return CGPoint(x: x, y: y)
+    }
+  }
+
+  /// Catmull-Rom smoothed polyline for a more organic, modern chart feel.
+  private func smoothLinePath(samples: [CGPoint]) -> Path {
+    var path = Path()
+    guard samples.count > 1 else { return path }
+    path.move(to: samples[0])
+    for index in 0..<(samples.count - 1) {
+      let p0 = samples[max(index - 1, 0)]
+      let p1 = samples[index]
+      let p2 = samples[index + 1]
+      let p3 = samples[min(index + 2, samples.count - 1)]
+      let control1 = CGPoint(
+        x: p1.x + (p2.x - p0.x) / 6,
+        y: p1.y + (p2.y - p0.y) / 6
+      )
+      let control2 = CGPoint(
+        x: p2.x - (p3.x - p1.x) / 6,
+        y: p2.y - (p3.y - p1.y) / 6
+      )
+      path.addCurve(to: p2, control1: control1, control2: control2)
     }
     return path
   }
 
-  private func areaPath(in size: CGSize, minValue: Double, range: Double) -> Path {
-    var path = linePath(in: size, minValue: minValue, range: range)
-    guard points.count > 1 else { return path }
+  private func smoothAreaPath(samples: [CGPoint], in size: CGSize) -> Path {
+    var path = smoothLinePath(samples: samples)
+    guard samples.count > 1 else { return path }
     path.addLine(to: CGPoint(x: size.width, y: size.height))
     path.addLine(to: CGPoint(x: 0, y: size.height))
     path.closeSubpath()
     return path
+  }
+}
+
+/// Circular health / gauge ring used by the overview hero and metric cards.
+struct HealthRing: View {
+  /// 0...1
+  let progress: Double
+  let color: Color
+  var lineWidth: CGFloat = 9
+  var trackOpacity: Double = 0.12
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .stroke(color.opacity(trackOpacity), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+      Circle()
+        .trim(from: 0, to: CGFloat(max(0.0, min(progress, 1.0))))
+        .stroke(
+          AngularGradient(
+            colors: [color.opacity(0.45), color],
+            center: .center,
+            startAngle: .degrees(0),
+            endAngle: .degrees(360 * max(0.02, min(progress, 1.0)))
+          ),
+          style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+        )
+        .rotationEffect(.degrees(-90))
+        .shadow(color: color.opacity(0.45), radius: 6)
+    }
+    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
   }
 }
 
@@ -302,26 +391,40 @@ struct DashboardMetricCard: View {
   let statusColor: Color
   let points: [MetricPoint]
 
+  @State private var isHovering = false
+
   var body: some View {
-    DashboardCard(padding: 14) {
-      VStack(alignment: .leading, spacing: 10) {
-        HStack(spacing: 7) {
-          Image(systemName: systemImage)
-            .foregroundStyle(accent)
+    DashboardCard(padding: 16, elevated: isHovering) {
+      VStack(alignment: .leading, spacing: 12) {
+        HStack(spacing: 8) {
+          ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .fill(accent.opacity(0.14))
+              .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                  .stroke(accent.opacity(0.22), lineWidth: 1)
+              )
+            Image(systemName: systemImage)
+              .font(.callout.weight(.semibold))
+              .foregroundStyle(accent)
+          }
+          .frame(width: 28, height: 28)
+
           Text(title.uppercased())
             .font(.caption.weight(.bold))
             .tracking(1.1)
-            .foregroundStyle(accent)
+            .foregroundStyle(ProcessWatchTheme.textSecondary)
           Spacer(minLength: 4)
           StatusPill(text: statusText, color: statusColor)
         }
 
         HStack(alignment: .firstTextBaseline, spacing: 8) {
           Text(value)
-            .font(.system(size: 30, weight: .semibold, design: .rounded))
+            .font(.system(size: 32, weight: .bold, design: .rounded))
             .monospacedDigit()
+            .foregroundStyle(ProcessWatchTheme.textPrimary)
             .lineLimit(1)
-            .minimumScaleFactor(0.68)
+            .minimumScaleFactor(0.62)
           Text(detail)
             .font(.caption)
             .foregroundStyle(ProcessWatchTheme.textSecondary)
@@ -330,7 +433,7 @@ struct DashboardMetricCard: View {
         }
 
         Sparkline(points: points, color: accent)
-          .frame(height: 46)
+          .frame(height: 52)
 
         Text(footer)
           .font(.caption)
@@ -340,7 +443,10 @@ struct DashboardMetricCard: View {
           .minimumScaleFactor(0.72)
       }
     }
-    .frame(minHeight: 150)
+    .frame(minHeight: 158)
+    .scaleEffect(isHovering ? 1.012 : 1)
+    .animation(.spring(response: 0.32, dampingFraction: 0.72), value: isHovering)
+    .onHover { isHovering = $0 }
   }
 }
 
@@ -356,42 +462,61 @@ struct ProcessWatchButtonStyle: ButtonStyle {
   @Environment(\.isEnabled) private var isEnabled
 
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.callout.weight(.medium))
-      .foregroundStyle(foreground)
-      .padding(.horizontal, 12)
-      .padding(.vertical, 8)
-      .background(background.opacity(configuration.isPressed ? 0.72 : 1))
-      .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-      .overlay(
-        RoundedRectangle(cornerRadius: 9, style: .continuous)
-          .stroke(border, lineWidth: 1)
-      )
-      .opacity(isEnabled ? 1 : 0.45)
+    ProcessWatchButtonBody(kind: kind, isEnabled: isEnabled, configuration: configuration)
   }
 
-  private var background: Color {
-    switch kind {
-    case .primary: return ProcessWatchTheme.amber.opacity(0.22)
-    case .secondary: return ProcessWatchTheme.surfaceRaised
-    case .danger: return ProcessWatchTheme.red.opacity(0.72)
-    case .subtle: return ProcessWatchTheme.surfaceSoft
+  private struct ProcessWatchButtonBody: View {
+    let kind: ProcessWatchButtonKind
+    let isEnabled: Bool
+    let configuration: Configuration
+    @State private var isHovering = false
+
+    var body: some View {
+      configuration.label
+        .font(.callout.weight(.medium))
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+          RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .fill(background.opacity(configuration.isPressed ? 0.72 : 1))
+            .overlay(
+              RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.white.opacity(isHovering ? 0.07 : 0))
+            )
+        )
+        .overlay(
+          RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .stroke(isHovering ? border.opacity(1.6) : border, lineWidth: 1)
+        )
+        .opacity(isEnabled ? 1 : 0.45)
+        .animation(.easeOut(duration: 0.15), value: isHovering)
+        .onHover { isHovering = $0 }
     }
-  }
 
-  private var foreground: Color {
-    switch kind {
-    case .primary: return ProcessWatchTheme.amber
-    case .secondary, .subtle: return ProcessWatchTheme.textPrimary
-    case .danger: return .white
+    private var background: Color {
+      switch kind {
+      case .primary: return ProcessWatchTheme.amber.opacity(0.24)
+      case .secondary: return ProcessWatchTheme.surfaceRaised
+      case .danger: return ProcessWatchTheme.red.opacity(0.72)
+      case .subtle: return ProcessWatchTheme.surfaceSoft
+      }
     }
-  }
 
-  private var border: Color {
-    switch kind {
-    case .primary: return ProcessWatchTheme.amber.opacity(0.28)
-    case .secondary, .subtle: return ProcessWatchTheme.border
-    case .danger: return ProcessWatchTheme.red.opacity(0.35)
+    private var foreground: Color {
+      switch kind {
+      case .primary: return ProcessWatchTheme.amber
+      case .secondary, .subtle: return ProcessWatchTheme.textPrimary
+      case .danger: return .white
+      }
+    }
+
+    private var border: Color {
+      switch kind {
+      case .primary: return ProcessWatchTheme.amber.opacity(0.30)
+      case .secondary, .subtle: return ProcessWatchTheme.border
+      case .danger: return ProcessWatchTheme.red.opacity(0.35)
+      }
     }
   }
 }

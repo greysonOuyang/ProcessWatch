@@ -11,6 +11,9 @@ extern "C" {
 typedef struct {
     int32_t pid;
     int32_t ppid;
+    uint32_t user_id;
+    uint32_t effective_user_id;
+    bool identity_reliable;
     int64_t start_time_sec;
     int32_t start_time_usec;
     uint64_t cpu_time_ns;
@@ -51,6 +54,9 @@ bool pw_read_process(int32_t pid, PWProcessSample *sample);
 /// Stable accessors used by Swift. These avoid relying on how Clang imports
 /// snake_case fields and fixed-size C character arrays in different Xcode versions.
 int32_t pw_process_sample_ppid(const PWProcessSample *sample);
+uint32_t pw_process_sample_user_id(const PWProcessSample *sample);
+uint32_t pw_process_sample_effective_user_id(const PWProcessSample *sample);
+bool pw_process_sample_identity_reliable(const PWProcessSample *sample);
 int64_t pw_process_sample_start_time_sec(const PWProcessSample *sample);
 int32_t pw_process_sample_start_time_usec(const PWProcessSample *sample);
 uint64_t pw_process_sample_cpu_time_ns(const PWProcessSample *sample);

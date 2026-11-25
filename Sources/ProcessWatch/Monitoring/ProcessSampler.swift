@@ -14,6 +14,9 @@ actor ProcessSampler {
     private struct RawProcess {
         let pid: Int32
         let ppid: Int32
+        let userID: UInt32
+        let effectiveUserID: UInt32
+        let identityIsReliable: Bool
         let name: String
         let path: String
         let commandLine: String
@@ -26,7 +29,7 @@ actor ProcessSampler {
 
         var identity: String {
             let start = startTime?.timeIntervalSince1970 ?? 0
-            return "\(name)|\(start)"
+            return "\(name)|\(path)|\(userID)|\(effectiveUserID)|\(start)"
         }
     }
 
@@ -67,6 +70,9 @@ actor ProcessSampler {
             rawProcesses.append(RawProcess(
                 pid: pid,
                 ppid: pw_process_sample_ppid(&raw),
+                userID: pw_process_sample_user_id(&raw),
+                effectiveUserID: pw_process_sample_effective_user_id(&raw),
+                identityIsReliable: pw_process_sample_identity_reliable(&raw),
                 name: decodedCString(pw_process_sample_name(&raw), fallback: "PID \(pid)"),
                 path: decodedCString(pw_process_sample_path(&raw)),
                 commandLine: decodedCString(pw_process_sample_command_line(&raw)),
@@ -117,6 +123,9 @@ actor ProcessSampler {
                 commandLine: raw.commandLine.isEmpty ? raw.path : raw.commandLine,
                 workingDirectory: raw.workingDirectory,
                 startTime: raw.startTime,
+                userID: raw.userID,
+                effectiveUserID: raw.effectiveUserID,
+                identityIsReliable: raw.identityIsReliable,
                 affiliation: affiliation,
                 cpuPercent: cpuPercent.isFinite ? cpuPercent : 0,
                 memoryBytes: raw.physicalFootprintBytes,

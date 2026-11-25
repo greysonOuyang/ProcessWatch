@@ -32,7 +32,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
     window.titlebarAppearsTransparent = true
     window.titlebarSeparatorStyle = .none
     window.isMovableByWindowBackground = true
-    window.backgroundColor = NSColor(calibratedRed: 0.03, green: 0.03, blue: 0.034, alpha: 1)
+    window.backgroundColor = NSColor(calibratedRed: 0.032, green: 0.035, blue: 0.046, alpha: 1)
     window.appearance = NSAppearance(named: .darkAqua)
     window.minSize = NSSize(width: 1260, height: 760)
     window.contentViewController = hostingController

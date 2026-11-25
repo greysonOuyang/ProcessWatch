@@ -5,146 +5,177 @@ struct MainView: View {
   @EnvironmentObject private var model: AppModel
 
   var body: some View {
-    ZStack {
-      ProcessWatchTheme.windowBackground
-        .ignoresSafeArea()
+    HStack(spacing: 0) {
+      sidebar
 
-      VStack(spacing: 0) {
-        topBar
-        Rectangle()
-          .fill(ProcessWatchTheme.border)
-          .frame(height: 1)
-        content
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-      }
+      Rectangle()
+        .fill(ProcessWatchTheme.border)
+        .frame(width: 1)
+
+      content
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+    .background(ProcessWatchTheme.windowBackground.ignoresSafeArea())
     .preferredColorScheme(.dark)
     .frame(minWidth: 1260, minHeight: 760)
   }
 
-  private var topBar: some View {
-    HStack(spacing: 14) {
-      // The traffic-light reserve is isolated to the title bar. Page content keeps a consistent 20 pt inset.
-      Color.clear.frame(width: 48, height: 1)
+  // MARK: - Sidebar
 
+  private var sidebar: some View {
+    VStack(alignment: .leading, spacing: 0) {
       brand
+        .padding(.top, 44) // clear the traffic-light buttons
+        .padding(.bottom, 18)
+
+      navSection
 
       Spacer(minLength: 12)
-      navigation
-      Spacer(minLength: 12)
-      windowActions
+
+      monitoringStatus
+        .padding(.bottom, 10)
+
+      Rectangle()
+        .fill(ProcessWatchTheme.border)
+        .frame(height: 1)
+        .padding(.bottom, 10)
+
+      bottomControls
+        .padding(.bottom, 14)
     }
-    .padding(.horizontal, ProcessWatchLayout.pageHorizontal)
-    .frame(height: 68)
-    .background(Color.black.opacity(0.10))
+    .padding(.horizontal, 12)
+    .frame(width: ProcessWatchLayout.sidebarWidth)
+    .frame(maxHeight: .infinity)
+    .background(Color.black.opacity(0.18))
   }
 
   private var brand: some View {
-    HStack(spacing: 10) {
+    HStack(spacing: 11) {
       ZStack {
-        RoundedRectangle(cornerRadius: 11, style: .continuous)
-          .fill(ProcessWatchTheme.amber.opacity(0.15))
-          .overlay(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-              .stroke(ProcessWatchTheme.amber.opacity(0.20), lineWidth: 1)
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .fill(
+            LinearGradient(
+              colors: [ProcessWatchTheme.amber.opacity(0.85), ProcessWatchTheme.amber.opacity(0.55)],
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            )
           )
+          .shadow(color: ProcessWatchTheme.amber.opacity(0.35), radius: 8, y: 2)
         Image(systemName: "waveform.path.ecg")
-          .font(.title3.weight(.semibold))
-          .foregroundStyle(ProcessWatchTheme.amber)
+          .font(.callout.weight(.bold))
+          .foregroundStyle(.black.opacity(0.85))
       }
-      .frame(width: 42, height: 42)
+      .frame(width: 36, height: 36)
 
-      VStack(alignment: .leading, spacing: 2) {
+      VStack(alignment: .leading, spacing: 3) {
         Text("ProcessWatch")
-          .font(.headline)
+          .font(.callout.weight(.bold))
           .foregroundStyle(ProcessWatchTheme.textPrimary)
         HStack(spacing: 5) {
           Circle()
             .fill(model.isPaused ? ProcessWatchTheme.amber : ProcessWatchTheme.teal)
             .frame(width: 6, height: 6)
+            .shadow(
+              color: (model.isPaused ? ProcessWatchTheme.amber : ProcessWatchTheme.teal).opacity(0.7),
+              radius: 3
+            )
           Text(model.isPaused ? "监控已暂停" : "正在监控")
+            .font(.caption2)
+            .foregroundStyle(ProcessWatchTheme.textSecondary)
         }
-        .font(.caption2)
-        .foregroundStyle(ProcessWatchTheme.textSecondary)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, 6)
+  }
+
+  private var navSection: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("导航")
+        .font(.caption2.weight(.bold))
+        .tracking(1.2)
+        .foregroundStyle(ProcessWatchTheme.textTertiary)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 4)
+
+      ForEach(Array(AppSection.allCases.enumerated()), id: \.element.id) { index, section in
+        SidebarNavButton(
+          section: section,
+          isSelected: model.selectedSection == section,
+          badgeCount: section == .alerts ? model.activeAnomalyCount : 0,
+          shortcutNumber: index + 1
+        ) {
+          model.selectedSection = section
+        }
       }
     }
   }
 
-  private var navigation: some View {
-    HStack(spacing: 3) {
-      ForEach(AppSection.allCases) { section in
-        Button {
-          model.selectedSection = section
-        } label: {
-          HStack(spacing: 7) {
-            Image(systemName: section.systemImage)
-              .font(.caption)
-            Text(section.rawValue)
-            if section == .alerts && model.activeAnomalyCount > 0 {
-              Text("\(model.activeAnomalyCount)")
-                .font(.caption2.weight(.bold))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(ProcessWatchTheme.red, in: Capsule())
-                .foregroundStyle(.white)
-            }
-          }
-          .font(.callout.weight(model.selectedSection == section ? .semibold : .regular))
-          .foregroundStyle(
-            model.selectedSection == section
-              ? ProcessWatchTheme.textPrimary : ProcessWatchTheme.textSecondary
-          )
-          .padding(.horizontal, 15)
-          .padding(.vertical, 9)
-          .background(
-            model.selectedSection == section
-              ? ProcessWatchTheme.surfaceSelected : Color.clear,
-            in: RoundedRectangle(cornerRadius: 9, style: .continuous)
-          )
-          .overlay(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-              .stroke(
-                model.selectedSection == section
-                  ? ProcessWatchTheme.amber.opacity(0.20) : Color.clear,
-                lineWidth: 1
-              )
-          )
+  private var monitoringStatus: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 6) {
+        Image(systemName: "timer")
+          .font(.caption2)
+          .foregroundStyle(ProcessWatchTheme.textTertiary)
+        Text("每 \(Int(model.settings.samplingInterval)) 秒采样")
+          .font(.caption2)
+          .foregroundStyle(ProcessWatchTheme.textSecondary)
+      }
+      if let lastSampleAt = model.lastSampleAt {
+        HStack(spacing: 6) {
+          Image(systemName: "clock.arrow.circlepath")
+            .font(.caption2)
+            .foregroundStyle(ProcessWatchTheme.textTertiary)
+          Text("更新于 \(lastSampleAt.formatted(date: .omitted, time: .standard))")
+            .font(.caption2)
+            .monospacedDigit()
+            .foregroundStyle(ProcessWatchTheme.textSecondary)
         }
-        .buttonStyle(.plain)
       }
     }
-    .padding(4)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 12)
+    .padding(.vertical, 10)
     .background(
-      Color.black.opacity(0.20),
-      in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+      ProcessWatchTheme.surfaceSoft,
+      in: RoundedRectangle(cornerRadius: ProcessWatchLayout.compactRadius, style: .continuous)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
+      RoundedRectangle(cornerRadius: ProcessWatchLayout.compactRadius, style: .continuous)
         .stroke(ProcessWatchTheme.border, lineWidth: 1)
     )
   }
 
-  private var windowActions: some View {
+  private var bottomControls: some View {
     HStack(spacing: 8) {
-      if model.activeAnomalyCount > 0 {
-        Button {
-          model.selectedSection = .alerts
-        } label: {
-          Label("\(model.activeAnomalyCount)", systemImage: "exclamationmark.triangle.fill")
-            .foregroundStyle(ProcessWatchTheme.red)
-        }
-        .buttonStyle(ProcessWatchButtonStyle(kind: .subtle))
-        .help("查看活动异常")
-      }
-
       Button {
         model.togglePaused()
       } label: {
         Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
-          .frame(width: 16)
+          .frame(width: 14)
       }
       .buttonStyle(ProcessWatchButtonStyle(kind: .subtle))
       .help(model.isPaused ? "继续监控" : "暂停监控")
+
+      Button {
+        model.selectedSection = .alerts
+      } label: {
+        ZStack(alignment: .topTrailing) {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(model.activeAnomalyCount > 0 ? ProcessWatchTheme.red : ProcessWatchTheme.textSecondary)
+            .frame(width: 14)
+          if model.activeAnomalyCount > 0 {
+            Circle()
+              .fill(ProcessWatchTheme.red)
+              .frame(width: 7, height: 7)
+              .offset(x: 5, y: -4)
+          }
+        }
+      }
+      .buttonStyle(ProcessWatchButtonStyle(kind: .subtle))
+      .help("查看活动异常")
+
+      Spacer(minLength: 0)
 
       Menu {
         Button("关于 ProcessWatch") { ApplicationInfo.showAboutPanel() }
@@ -156,25 +187,109 @@ struct MainView: View {
         }
       } label: {
         Image(systemName: "ellipsis")
-          .frame(width: 16)
+          .frame(width: 14)
       }
       .menuStyle(.borderlessButton)
       .buttonStyle(ProcessWatchButtonStyle(kind: .subtle))
-      .frame(width: 42)
+      .frame(width: 38)
     }
   }
 
+  // MARK: - Content
+
   @ViewBuilder
   private var content: some View {
-    switch model.selectedSection {
-    case .overview:
-      OverviewView()
-    case .processes:
-      ProcessListView(settings: model.settings)
-    case .alerts:
-      AlertsView()
-    case .settings:
-      SettingsView(settings: model.settings, loginItem: model.loginItem)
+    ZStack {
+      switch model.selectedSection {
+      case .overview:
+        OverviewView()
+      case .processes:
+        ProcessListView(settings: model.settings)
+      case .alerts:
+        AlertsView()
+      case .settings:
+        SettingsView(settings: model.settings, loginItem: model.loginItem)
+      }
     }
+    .id(model.selectedSection)
+    .transition(.opacity.combined(with: .scale(scale: 0.992, anchor: .top)))
+    .animation(.easeOut(duration: 0.18), value: model.selectedSection)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}
+
+// MARK: - Sidebar navigation button
+
+private struct SidebarNavButton: View {
+  let section: AppSection
+  let isSelected: Bool
+  let badgeCount: Int
+  let shortcutNumber: Int
+  let action: () -> Void
+
+  @State private var isHovering = false
+
+  var body: some View {
+    Button(action: action) {
+      HStack(spacing: 10) {
+        // Selection indicator bar
+        RoundedRectangle(cornerRadius: 2, style: .continuous)
+          .fill(isSelected ? ProcessWatchTheme.accent : Color.clear)
+          .frame(width: 3, height: 18)
+          .shadow(color: isSelected ? ProcessWatchTheme.accent.opacity(0.6) : .clear, radius: 3)
+
+        Image(systemName: section.systemImage)
+          .font(.callout.weight(.medium))
+          .frame(width: 20)
+          .foregroundStyle(
+            isSelected ? ProcessWatchTheme.accent : ProcessWatchTheme.textSecondary
+          )
+
+        Text(section.rawValue)
+          .font(.callout.weight(isSelected ? .semibold : .regular))
+          .foregroundStyle(
+            isSelected ? ProcessWatchTheme.textPrimary : ProcessWatchTheme.textSecondary
+          )
+
+        Spacer(minLength: 4)
+
+        if badgeCount > 0 {
+          Text("\(badgeCount)")
+            .font(.caption2.weight(.bold))
+            .monospacedDigit()
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(ProcessWatchTheme.red, in: Capsule())
+            .foregroundStyle(.white)
+            .shadow(color: ProcessWatchTheme.red.opacity(0.5), radius: 4)
+        }
+      }
+      .padding(.horizontal, 8)
+      .padding(.vertical, 9)
+      .background(
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .fill(
+            isSelected
+              ? ProcessWatchTheme.surfaceSelected
+              : (isHovering ? ProcessWatchTheme.surfaceHover : Color.clear)
+          )
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .stroke(
+            isSelected ? ProcessWatchTheme.accent.opacity(0.25) : Color.clear,
+            lineWidth: 1
+          )
+      )
+      .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+    .buttonStyle(.plain)
+    .keyboardShortcut(
+      KeyboardShortcut(KeyEquivalent(Character("\(shortcutNumber)")), modifiers: .command)
+    )
+    .onHover { isHovering = $0 }
+    .animation(.easeOut(duration: 0.15), value: isHovering)
+    .animation(.easeOut(duration: 0.15), value: isSelected)
+    .help("⌘\(shortcutNumber)")
   }
 }
